@@ -26,6 +26,8 @@ import {
   Eye,
   CheckCircle2,
   ArrowLeft,
+  Clock,
+  Printer,
 } from 'lucide-react';
 
 import {
@@ -86,6 +88,9 @@ interface AdminDashboardProps {
   volunteers: VolunteerRecord[];
   onUpdateVolunteers: (v: VolunteerRecord[]) => void;
 
+  // Print / view receipt hook
+  onViewReceipt?: (code: string) => void;
+
   // Reset to initial
   onResetAllData: () => void;
   onClose: () => void;
@@ -116,6 +121,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onUpdateMessages,
   volunteers,
   onUpdateVolunteers,
+  onViewReceipt,
   onResetAllData,
   onClose,
 }) => {
@@ -152,6 +158,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Status banners
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [pledgeSearchQuery, setPledgeSearchQuery] = useState('');
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -166,8 +173,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       cleanPass.toLowerCase() === '@fisabilillah' ||
       cleanPass === 'Fisabilillah' ||
       cleanPass === 'admin' ||
-      cleanPass === 'zanjabeel2026' ||
-      cleanPass === ''
+      cleanPass === 'zanjabeel2026'
     ) {
       setIsAuthenticated(true);
       sessionStorage.setItem('zanjabeel_admin_auth', 'true');
@@ -324,36 +330,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div className="w-12 h-12 rounded-xl bg-emerald-900 border border-amber-500/40 text-amber-400 flex items-center justify-center mx-auto mb-3 shadow-md">
               <Lock className="w-6 h-6" />
             </div>
-            <h2 className="font-serif text-2xl font-bold text-white">Foundation Admin Portal</h2>
+            <h2 className="font-serif text-2xl font-bold text-white">Authorized Secretariat Portal</h2>
             <p className="text-xs text-emerald-200 mt-1">
-              Zanjabeel Islamic Charity & Humanitarian Foundation
+              Zanjabeel Islamic Charity & Humanitarian Foundation · Potiskum
             </p>
           </div>
 
           <form onSubmit={handleLogin} className="p-6 space-y-4 text-xs">
             <p className="text-stone-600 leading-relaxed text-xs">
-              This panel enables foundation administrators to <strong>create, edit, delete, or upload</strong> programs, campaigns, news, photos, bank details, and review donor pledges.
+              Internal authentication for authorized foundation trustees, treasury administrators, and secretariat staff.
             </p>
 
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block font-semibold uppercase tracking-wider text-stone-700">
-                  Admin Passcode
-                </label>
-                <span className="text-[10px] text-emerald-800 font-mono font-semibold">
-                  Default: @Fisabilillah
-                </span>
-              </div>
+              <label className="block font-semibold uppercase tracking-wider text-stone-700 mb-1">
+                Secretariat Passcode
+              </label>
               <input
                 type="password"
-                placeholder="Enter password: @Fisabilillah"
+                placeholder="Enter authorized access key"
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
                 className="w-full px-3.5 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-700 focus:outline-hidden font-mono"
+                required
               />
               {loginError && (
                 <p className="text-red-600 text-xs mt-1">
-                  Incorrect passcode. Please enter <span className="font-mono font-bold">@Fisabilillah</span>.
+                  Access denied. Incorrect passcode entered. Please contact authorized secretariat.
                 </p>
               )}
             </div>
@@ -363,21 +365,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 type="submit"
                 className="w-full py-3 bg-emerald-800 hover:bg-emerald-900 text-amber-300 font-bold uppercase tracking-wider rounded-lg shadow-sm transition-all"
               >
-                Sign In to Admin Panel
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setPasswordInput('@Fisabilillah');
-                  const cleanPass = '@Fisabilillah';
-                  setIsAuthenticated(true);
-                  sessionStorage.setItem('zanjabeel_admin_auth', 'true');
-                  setLoginError(false);
-                }}
-                className="w-full py-2.5 bg-amber-50 text-amber-900 border border-amber-300 rounded-lg font-semibold hover:bg-amber-100 transition-colors flex items-center justify-center gap-1.5"
-              >
-                <span>⚡ Quick Access with @Fisabilillah</span>
+                Sign In to Console
               </button>
             </div>
 
@@ -2046,22 +2034,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               {/* Donor Pledges Section */}
               <div className="bg-white rounded-2xl p-6 border border-stone-200 shadow-xs space-y-4">
-                <div className="flex items-center justify-between border-b pb-2">
-                  <h3 className="font-serif text-lg font-bold text-emerald-950 flex items-center gap-2">
-                    <Heart className="w-4 h-4 text-emerald-800" />
-                    Donation Pledges ({pledges.length})
-                  </h3>
-                  {pledges.length > 0 && (
-                    <button
-                      onClick={() => {
-                        if (window.confirm('Clear all pledges?')) onUpdatePledges([]);
-                      }}
-                      className="text-stone-400 hover:text-red-600 text-xs"
-                    >
-                      Clear All
-                    </button>
-                  )}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3">
+                  <div>
+                    <h3 className="font-serif text-lg font-bold text-emerald-950 flex items-center gap-2">
+                      <Heart className="w-4 h-4 text-emerald-800" />
+                      Donation Pledges & Verification Desk ({pledges.length})
+                    </h3>
+                    <p className="text-[11px] text-stone-500">
+                      Confirm received bank transfers to immediately issue official receipts to donors by code.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {pledges.length > 0 && (
+                      <button
+                        onClick={() => {
+                          if (window.confirm('Clear all pledges?')) onUpdatePledges([]);
+                        }}
+                        className="text-stone-400 hover:text-red-600 text-xs px-2 py-1"
+                      >
+                        Clear All
+                      </button>
+                    )}
+                  </div>
                 </div>
+
+                {/* Filter / Search Bar */}
+                {pledges.length > 0 && (
+                  <div className="flex items-center gap-2 max-w-sm">
+                    <input
+                      type="text"
+                      placeholder="Filter by Code (ZNJ-...), Donor, or Cause..."
+                      value={pledgeSearchQuery}
+                      onChange={(e) => setPledgeSearchQuery(e.target.value)}
+                      className="w-full px-3 py-1.5 border border-stone-300 rounded-lg text-xs font-mono"
+                    />
+                  </div>
+                )}
 
                 {pledges.length === 0 ? (
                   <p className="text-xs text-stone-400 italic py-4 text-center">
@@ -2072,65 +2081,120 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <table className="w-full text-xs text-left">
                       <thead className="bg-stone-50 text-stone-500 uppercase tracking-wider text-[10px]">
                         <tr>
-                          <th className="p-2.5">Reference</th>
-                          <th className="p-2.5">Donor</th>
+                          <th className="p-2.5">Reference Code</th>
+                          <th className="p-2.5">Donor Particulars</th>
                           <th className="p-2.5">Amount</th>
                           <th className="p-2.5">Designated Cause</th>
                           <th className="p-2.5">Date</th>
-                          <th className="p-2.5">Status</th>
-                          <th className="p-2.5 text-right">Actions</th>
+                          <th className="p-2.5">Payment Status</th>
+                          <th className="p-2.5 text-right">Admin Action</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-stone-100">
-                        {pledges.map((pl) => (
-                          <tr key={pl.id} className="hover:bg-stone-50">
-                            <td className="p-2.5 font-mono font-bold text-emerald-900">{pl.reference}</td>
-                            <td className="p-2.5">
-                              <div className="font-semibold text-stone-900">{pl.donorName}</div>
-                              <div className="text-[10px] text-stone-500">{pl.donorEmail}</div>
-                              {pl.donorPhone && <div className="text-[10px] text-stone-400">{pl.donorPhone}</div>}
-                            </td>
-                            <td className="p-2.5 font-bold text-stone-900">₦{pl.amount.toLocaleString()}</td>
-                            <td className="p-2.5 text-stone-600">{pl.cause}</td>
-                            <td className="p-2.5 text-stone-400">{pl.timestamp}</td>
-                            <td className="p-2.5">
-                              <span
-                                className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                                  pl.status === 'Confirmed'
-                                    ? 'bg-emerald-100 text-emerald-800'
-                                    : 'bg-amber-100 text-amber-800'
-                                }`}
-                              >
-                                {pl.status}
-                              </span>
-                            </td>
-                            <td className="p-2.5 text-right space-x-1">
-                              <button
-                                onClick={() => {
-                                  const updated = pledges.map((item) =>
-                                    item.id === pl.id
-                                      ? {
-                                          ...item,
-                                          status: item.status === 'Confirmed' ? 'Pending Verification' : 'Confirmed',
-                                        }
-                                      : item
-                                  );
-                                  onUpdatePledges(updated as any);
-                                  showToast('Pledge status updated.');
-                                }}
-                                className="px-2 py-1 bg-stone-100 hover:bg-stone-200 rounded text-[10px] font-medium"
-                              >
-                                Toggle
-                              </button>
-                              <button
-                                onClick={() => onUpdatePledges(pledges.filter((item) => item.id !== pl.id))}
-                                className="p-1 text-stone-400 hover:text-red-600"
-                              >
-                                <Trash2 className="w-3.5 h-3.5 inline" />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
+                        {pledges
+                          .filter((pl) => {
+                            if (!pledgeSearchQuery.trim()) return true;
+                            const q = pledgeSearchQuery.toLowerCase();
+                            return (
+                              pl.reference.toLowerCase().includes(q) ||
+                              pl.donorName.toLowerCase().includes(q) ||
+                              pl.cause.toLowerCase().includes(q) ||
+                              pl.status.toLowerCase().includes(q)
+                            );
+                          })
+                          .map((pl) => (
+                            <tr key={pl.id} className="hover:bg-stone-50 transition-colors">
+                              <td className="p-2.5 font-mono font-bold text-emerald-900 text-xs">
+                                {pl.reference}
+                              </td>
+                              <td className="p-2.5">
+                                <div className="font-semibold text-stone-900">{pl.donorName}</div>
+                                <div className="text-[10px] text-stone-500">{pl.donorEmail}</div>
+                                {pl.donorPhone && <div className="text-[10px] text-stone-400 font-mono">{pl.donorPhone}</div>}
+                              </td>
+                              <td className="p-2.5 font-bold text-stone-900 font-mono">
+                                ₦{pl.amount.toLocaleString()}
+                              </td>
+                              <td className="p-2.5 text-stone-600 max-w-xs truncate">{pl.cause}</td>
+                              <td className="p-2.5 text-stone-400 whitespace-nowrap">{pl.timestamp}</td>
+                              <td className="p-2.5 whitespace-nowrap">
+                                <span
+                                  className={`px-2.5 py-1 rounded-md text-[10px] font-bold inline-flex items-center gap-1 ${
+                                    pl.status === 'Confirmed'
+                                      ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                                      : 'bg-amber-100 text-amber-900 border border-amber-300'
+                                  }`}
+                                >
+                                  {pl.status === 'Confirmed' ? (
+                                    <>
+                                      <CheckCircle2 className="w-3 h-3 text-emerald-700" />
+                                      <span>Payment Confirmed</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Clock className="w-3 h-3 text-amber-700" />
+                                      <span>Pending Transfer</span>
+                                    </>
+                                  )}
+                                </span>
+                              </td>
+                              <td className="p-2.5 text-right whitespace-nowrap space-x-1.5">
+                                {pl.status !== 'Confirmed' ? (
+                                  <button
+                                    onClick={() => {
+                                      const updated = pledges.map((item) =>
+                                        item.id === pl.id ? { ...item, status: 'Confirmed' as const } : item
+                                      );
+                                      onUpdatePledges(updated);
+                                      showToast(`Payment for ${pl.reference} CONFIRMED! Donor can now print official receipt.`);
+                                    }}
+                                    className="px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-amber-300 font-bold rounded text-[11px] shadow-xs inline-flex items-center gap-1 transition-colors"
+                                    title="Confirm that bank transfer was received"
+                                  >
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    <span>Confirm Payment</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => {
+                                      const updated = pledges.map((item) =>
+                                        item.id === pl.id ? { ...item, status: 'Pending Verification' as const } : item
+                                      );
+                                      onUpdatePledges(updated);
+                                      showToast(`Status reverted to Pending.`);
+                                    }}
+                                    className="px-2.5 py-1 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded text-[10px] font-medium"
+                                    title="Revert back to pending"
+                                  >
+                                    Revert to Pending
+                                  </button>
+                                )}
+
+                                {onViewReceipt && (
+                                  <button
+                                    onClick={() => onViewReceipt(pl.reference)}
+                                    className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold rounded text-[10px] inline-flex items-center gap-1 transition-colors"
+                                    title="View / Print Document"
+                                  >
+                                    <Printer className="w-3 h-3" />
+                                    <span>Print {pl.status === 'Confirmed' ? 'Receipt' : 'Invoice'}</span>
+                                  </button>
+                                )}
+
+                                <button
+                                  onClick={() => {
+                                    if (window.confirm(`Delete pledge ${pl.reference}?`)) {
+                                      onUpdatePledges(pledges.filter((item) => item.id !== pl.id));
+                                    }
+                                  }}
+                                  className="p-1 text-stone-400 hover:text-red-600 rounded"
+                                  title="Delete record"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 inline" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
                       </tbody>
                     </table>
                   </div>

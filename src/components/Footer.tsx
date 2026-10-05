@@ -7,9 +7,10 @@ interface FooterProps {
   onNavigate: (tab: string, programId?: string) => void;
   onOpenDonate: () => void;
   onOpenAdmin?: () => void;
+  onOpenReceiptPortal?: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ config, onNavigate, onOpenDonate, onOpenAdmin }) => {
+export const Footer: React.FC<FooterProps> = ({ config, onNavigate, onOpenDonate, onOpenAdmin, onOpenReceiptPortal }) => {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -148,6 +149,16 @@ export const Footer: React.FC<FooterProps> = ({ config, onNavigate, onOpenDonate
                   Contact Us
                 </button>
               </li>
+              {onOpenReceiptPortal && (
+                <li>
+                  <button
+                    onClick={onOpenReceiptPortal}
+                    className="text-amber-300 hover:text-white transition-colors text-left font-semibold flex items-center gap-1.5"
+                  >
+                    <span>🖨️ Track Code / Print Receipt</span>
+                  </button>
+                </li>
+              )}
             </ul>
           </div>
 
@@ -273,7 +284,17 @@ export const Footer: React.FC<FooterProps> = ({ config, onNavigate, onOpenDonate
 
         {/* Bottom Bar: Copyright & Legal */}
         <div className="mt-12 pt-6 border-t border-emerald-950 flex flex-col md:flex-row items-center justify-between text-xs text-stone-400 gap-4">
-          <p>© 2026 Zanjabeel Islamic Charity and Humanitarian Foundation, Potiskum. All Rights Reserved.</p>
+          <p>
+            <button
+              type="button"
+              onClick={onOpenAdmin}
+              className="text-stone-400 hover:text-stone-300 transition-colors cursor-default focus:outline-hidden"
+              title=""
+            >
+              © 2026
+            </button>{' '}
+            Zanjabeel Islamic Charity and Humanitarian Foundation, Potiskum. All Rights Reserved.
+          </p>
 
           <div className="flex items-center gap-4 text-[11px]">
             <button
@@ -301,9 +322,10 @@ export const Footer: React.FC<FooterProps> = ({ config, onNavigate, onOpenDonate
                 <span className="text-stone-600">·</span>
                 <button
                   onClick={onOpenAdmin}
-                  className="text-amber-400 hover:text-amber-300 font-semibold transition-colors"
+                  className="text-stone-500 hover:text-stone-400 transition-colors"
+                  title="Secretariat"
                 >
-                  Admin Portal
+                  Secretariat
                 </button>
               </>
             )}

@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { WhatsAppFloat } from './components/WhatsAppFloat';
 import { DonationModal } from './components/DonationModal';
+import { DonationReceiptModal } from './components/DonationReceiptModal';
 import { ProgramDetailModal } from './components/ProgramDetailModal';
 import { ImageLightbox } from './components/ImageLightbox';
 import { AdminDashboard } from './components/AdminDashboard';
@@ -42,6 +43,7 @@ import {
   coreValues,
   aboutImg,
   heroImg,
+  initialPledges,
 } from './data/mockData';
 
 import {
@@ -157,9 +159,9 @@ export default function App() {
   const [pledges, setPledges] = useState<DonationPledgeRecord[]>(() => {
     try {
       const saved = localStorage.getItem('znj_pledges');
-      return saved ? JSON.parse(saved) : [];
+      return saved ? JSON.parse(saved) : initialPledges;
     } catch {
-      return [];
+      return initialPledges;
     }
   });
 
@@ -186,7 +188,26 @@ export default function App() {
   const [selectedProgramModal, setSelectedProgramModal] = useState<ProgramItem | null>(null);
   const [selectedGalleryPhoto, setSelectedGalleryPhoto] = useState<GalleryPhoto | null>(null);
   const [adminDashboardOpen, setAdminDashboardOpen] = useState(false);
+  const [receiptPortalOpen, setReceiptPortalOpen] = useState(false);
+  const [receiptInitialCode, setReceiptInitialCode] = useState('');
   const [donateDefaultCause, setDonateDefaultCause] = useState<string>('General Humanitarian Fund & Sadaqah');
+
+  const handleOpenReceiptPortal = (code: string = '') => {
+    setReceiptInitialCode(code);
+    setReceiptPortalOpen(true);
+  };
+
+  // Secret Admin Access via shortcut: Ctrl + Shift + A (or Cmd + Shift + A)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+        e.preventDefault();
+        setAdminDashboardOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Persistence handlers
   const updateOrgConfig = (cfg: OrganizationConfig) => {
@@ -351,6 +372,7 @@ export default function App() {
           setDonateModalOpen(true);
         }}
         onOpenAdmin={() => setAdminDashboardOpen(true)}
+        onOpenReceiptPortal={() => handleOpenReceiptPortal('')}
       />
 
       {/* Main Content Router */}
@@ -726,6 +748,7 @@ export default function App() {
             config={orgConfig}
             onOpenModal={() => setDonateModalOpen(true)}
             onRecordPledge={handleRecordPledge}
+            onViewReceipt={handleOpenReceiptPortal}
           />
         )}
 
@@ -825,6 +848,15 @@ export default function App() {
         config={orgConfig}
         defaultCause={donateDefaultCause}
         onRecordPledge={handleRecordPledge}
+        onViewReceipt={handleOpenReceiptPortal}
+      />
+
+      <DonationReceiptModal
+        isOpen={receiptPortalOpen}
+        onClose={() => setReceiptPortalOpen(false)}
+        pledges={pledges}
+        config={orgConfig}
+        initialCode={receiptInitialCode}
       />
 
       <ProgramDetailModal
@@ -868,6 +900,7 @@ export default function App() {
           onUpdateMessages={updateMessages}
           volunteers={volunteers}
           onUpdateVolunteers={updateVolunteers}
+          onViewReceipt={handleOpenReceiptPortal}
           onResetAllData={handleResetAllData}
           onClose={() => setAdminDashboardOpen(false)}
         />
@@ -885,6 +918,7 @@ export default function App() {
           setDonateModalOpen(true);
         }}
         onOpenAdmin={() => setAdminDashboardOpen(true)}
+        onOpenReceiptPortal={() => handleOpenReceiptPortal('')}
       />
     </div>
   );

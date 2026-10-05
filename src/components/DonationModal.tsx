@@ -8,6 +8,7 @@ interface DonationModalProps {
   config: OrganizationConfig;
   defaultCause?: string;
   onRecordPledge?: (pledge: DonationPledgeRecord) => void;
+  onViewReceipt?: (code: string) => void;
 }
 
 export const DonationModal: React.FC<DonationModalProps> = ({
@@ -16,6 +17,7 @@ export const DonationModal: React.FC<DonationModalProps> = ({
   config,
   defaultCause = 'General Humanitarian Fund & Sadaqah',
   onRecordPledge,
+  onViewReceipt,
 }) => {
   const [donationType, setDonationType] = useState<'one-time' | 'monthly' | 'project'>('one-time');
   const [selectedAmount, setSelectedAmount] = useState<number | 'custom'>(20000);
@@ -357,20 +359,38 @@ export const DonationModal: React.FC<DonationModalProps> = ({
                 </div>
               </div>
 
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-md max-w-md mx-auto text-[11px] text-amber-900 text-left">
-                <strong>Next Step:</strong> When initiating transfer to <span className="font-mono font-semibold">{config.accountNumberPlaceholder}</span>, please use your reference <span className="font-mono font-bold">{pledgeRef}</span> as the transfer remark, or send proof of payment to our authorized WhatsApp desk: <span className="font-semibold">{config.whatsappPlaceholder}</span>.
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-md max-w-md mx-auto text-[11px] text-amber-900 text-left space-y-1">
+                <p>
+                  <strong>Transfer Remittance Remark:</strong> Please enter <span className="font-mono font-bold text-emerald-950">{pledgeRef}</span> as the description/narration when transferring to <span className="font-mono font-semibold">{config.accountNumberPlaceholder}</span>.
+                </p>
+                <p className="text-[10px] text-stone-600">
+                  ℹ️ Once our admin in Potiskum confirms receipt of your transfer, enter your reference <span className="font-mono font-bold">{pledgeRef}</span> on our site to view and print your <strong>Official Confirmed Charitable Donation Receipt</strong>.
+                </p>
               </div>
 
-              <div className="pt-4 flex justify-center gap-3">
+              <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+                {onViewReceipt && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onViewReceipt(pledgeRef);
+                    }}
+                    className="w-full sm:w-auto px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold rounded-md text-xs shadow-xs transition-colors flex items-center justify-center gap-2"
+                  >
+                    <span>🖨️ View & Print Payment Invoice</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={() => {
                     setPledgeSubmitted(false);
                     onClose();
                   }}
-                  className="px-6 py-2.5 bg-emerald-800 text-white rounded-md text-xs font-semibold hover:bg-emerald-900 transition-colors"
+                  className="w-full sm:w-auto px-6 py-2.5 bg-emerald-800 text-white rounded-md text-xs font-semibold hover:bg-emerald-900 transition-colors"
                 >
-                  Close Receipt
+                  Close
                 </button>
               </div>
             </div>

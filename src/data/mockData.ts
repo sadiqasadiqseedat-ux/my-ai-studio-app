@@ -8,6 +8,7 @@ import {
   PartnerItem,
   Testimonial,
   OrganizationConfig,
+  DonationPledgeRecord,
 } from '../types';
 
 import heroImg from '../assets/images/hero_humanitarian_action_1791205577913.jpg';
@@ -447,5 +448,44 @@ export const testimonials: Testimonial[] = [
     name: '[PATRON & SUPPORTER PLACEHOLDER]',
     role: 'Philanthropic Contributor',
     community: 'Yobe State',
+  },
+];
+
+export const initialPledges: DonationPledgeRecord[] = [
+  {
+    id: 'pledge-demo-1',
+    reference: 'ZNJ-842109',
+    donorName: 'Alhaji Ibrahim Danladi',
+    donorEmail: 'i.danladi@example.com',
+    donorPhone: '+234 803 555 0192',
+    cause: 'Water & Sanitation (Potiskum Borehole Project)',
+    amount: 150000,
+    frequency: 'Project Sponsorship',
+    timestamp: '28 Feb 2026',
+    status: 'Confirmed',
+  },
+  {
+    id: 'pledge-demo-2',
+    reference: 'ZNJ-519304',
+    donorName: 'Hajiya Fatima Mohammed',
+    donorEmail: 'fatima.m@example.com',
+    donorPhone: '+234 812 444 8821',
+    cause: 'Orphans & Vulnerable Persons Welfare',
+    amount: 50000,
+    frequency: 'Monthly',
+    timestamp: '02 Mar 2026',
+    status: 'Pending Verification',
+  },
+  {
+    id: 'pledge-demo-3',
+    reference: 'ZNJ-392817',
+    donorName: 'Anonymous Donor (Fisabilillah)',
+    donorEmail: 'donor.fisabilillah@example.com',
+    donorPhone: '',
+    cause: 'Food & Basic Needs Distribution',
+    amount: 25000,
+    frequency: 'One-Time',
+    timestamp: '04 Mar 2026',
+    status: 'Confirmed',
   },
 ];

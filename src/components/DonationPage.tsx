@@ -6,9 +6,10 @@ interface DonationPageProps {
   config: OrganizationConfig;
   onOpenModal: () => void;
   onRecordPledge?: (pledge: DonationPledgeRecord) => void;
+  onViewReceipt?: (code: string) => void;
 }
 
-export const DonationPage: React.FC<DonationPageProps> = ({ config, onOpenModal, onRecordPledge }) => {
+export const DonationPage: React.FC<DonationPageProps> = ({ config, onOpenModal, onRecordPledge, onViewReceipt }) => {
   const [donationType, setDonationType] = useState<'one-time' | 'monthly' | 'project'>('one-time');
   const [selectedAmount, setSelectedAmount] = useState<number | 'custom'>(20000);
   const [customAmount, setCustomAmount] = useState('');
@@ -276,22 +277,31 @@ export const DonationPage: React.FC<DonationPageProps> = ({ config, onOpenModal,
                   </div>
                 </div>
 
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg max-w-md mx-auto text-[11px] text-amber-900 text-left">
-                  <strong>Transfer Advisory:</strong> When completing your bank mobile transfer or USSD, please enter <span className="font-mono font-bold">{pledgeRef}</span> in the description / remark field.
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg max-w-md mx-auto text-[11px] text-amber-900 text-left space-y-1">
+                  <p>
+                    <strong>Transfer Advisory:</strong> When completing your bank mobile transfer or USSD, please enter <span className="font-mono font-bold text-emerald-950">{pledgeRef}</span> in the description / remark field.
+                  </p>
+                  <p className="text-[10px] text-stone-600">
+                    ℹ️ Once verified by our treasury desk, re-enter code <span className="font-mono font-bold">{pledgeRef}</span> on this page anytime to view & print your <strong>Official Confirmed Charitable Donation Receipt</strong>.
+                  </p>
                 </div>
 
-                <div className="flex items-center justify-center gap-3 pt-2">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                  {onViewReceipt && (
+                    <button
+                      type="button"
+                      onClick={() => onViewReceipt(pledgeRef)}
+                      className="w-full sm:w-auto px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-sm"
+                    >
+                      <span>🖨️ View & Print Payment Invoice</span>
+                    </button>
+                  )}
                   <button
+                    type="button"
                     onClick={() => setPledgeSubmitted(false)}
-                    className="px-5 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg text-xs font-semibold"
+                    className="w-full sm:w-auto px-5 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg text-xs font-semibold"
                   >
-                    Adjust Pledge
-                  </button>
-                  <button
-                    onClick={() => window.print()}
-                    className="px-5 py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg text-xs font-semibold"
-                  >
-                    Print Pledge Receipt
+                    Generate Another Pledge
                   </button>
                 </div>
               </div>
@@ -387,6 +397,31 @@ export const DonationPage: React.FC<DonationPageProps> = ({ config, onOpenModal,
             </div>
           </div>
         </div>
+
+        {/* Code Tracking & Print Receipt Section */}
+        {onViewReceipt && (
+          <div className="mt-14 bg-gradient-to-r from-emerald-900 to-[#043327] rounded-2xl p-6 sm:p-10 text-white shadow-xl border border-emerald-800 flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div className="space-y-2 text-center sm:text-left">
+              <span className="text-[11px] uppercase font-bold text-amber-300 tracking-wider">
+                Donor Self-Service Portal
+              </span>
+              <h3 className="font-serif text-2xl font-bold text-white">
+                Have a Donation Reference Code?
+              </h3>
+              <p className="text-xs text-emerald-100/90 max-w-xl leading-relaxed">
+                Enter your unique code (e.g. <span className="font-mono font-bold text-amber-300">ZNJ-XXXXXX</span>) to print your official bank payment invoice or download your confirmed charitable receipt once verified by admin.
+              </p>
+            </div>
+
+            <button
+              onClick={() => onViewReceipt('')}
+              className="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs uppercase tracking-wider rounded-lg shadow-md transition-colors shrink-0 flex items-center gap-2"
+            >
+              <span>Track Code & Print Receipt</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
