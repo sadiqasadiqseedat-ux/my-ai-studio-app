@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-serif: 'Cormorant Garamond', Georgia, serif;
+    --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-arabic: 'Amiri', serif;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #faf8f4;
+    color: #1f2937;
+  }
+
+  h1, h2, h3, .font-editorial {
+    font-family: var(--font-serif);
+  }
+
+  .font-arabic {
+    font-family: var(--font-arabic);
+  }
+}
+
+/* Subtle Islamic geometric star pattern overlay */
+.bg-islamic-pattern {
+  background-color: #064e3b;
+  background-image: radial-gradient(rgba(245, 158, 11, 0.12) 1px, transparent 1px), radial-gradient(rgba(255, 255, 255, 0.05) 1px, #064e3b 1px);
+  background-size: 24px 24px;
+  background-position: 0 0, 12px 12px;
+}
+
+.bg-sand-pattern {
+  background-color: #faf8f4;
+  background-image: radial-gradient(rgba(6, 78, 59, 0.04) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Custom arch border radius */
+.rounded-arch {
+  border-radius: 4rem 4rem 1rem 1rem;
+}
+
+.rounded-arch-top {
+  border-top-left-radius: 5rem;
+  border-top-right-radius: 5rem;
+}
