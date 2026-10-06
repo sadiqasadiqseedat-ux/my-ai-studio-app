@@ -1,4 +1,5 @@
 export type UserRole =
+  | 'Principal Partner'
   | 'Managing Partner'
   | 'Partner'
   | 'Associate / Counsel'
@@ -8,15 +9,34 @@ export type UserRole =
   | 'Property/Facility Officer'
   | 'Administrator';
 
+export interface BranchRecord {
+  id: string;
+  name: string;
+  code: string;
+  city: string;
+  state: string;
+  address: string;
+  phone: string;
+  email: string;
+  isHeadquarters?: boolean;
+  dateCreated: string;
+}
+
 export interface UserProfile {
   id: string;
   name: string;
+  username: string;
+  password?: string;
   email: string;
   role: UserRole;
   title: string;
+  branchId: string;
+  branchName: string;
   barNumber?: string;
   phone: string;
   avatar?: string;
+  isInitialAdmin?: boolean;
+  hasChangedDefaultPassword?: boolean;
 }
 
 export type ClientType =
@@ -41,6 +61,8 @@ export interface ClientRecord {
   assignedLawyer: string;
   status: 'Active' | 'Prospect' | 'Inactive';
   notes?: string;
+  branchId?: string;
+  branchName?: string;
 }
 
 export type MatterStatus =
@@ -75,6 +97,8 @@ export interface MatterRecord {
   jurisdiction: string;
   description: string;
   isSharia?: boolean;
+  branchId?: string;
+  branchName?: string;
 }
 
 export type CaseCategory =
@@ -132,6 +156,8 @@ export interface CaseRecord {
   previousCourtDate?: string;
   reliefsClaims: string;
   summary: string;
+  branchId?: string;
+  branchName?: string;
 }
 
 export interface CourtDiaryItem {
@@ -150,6 +176,8 @@ export interface CourtDiaryItem {
   status: 'Scheduled' | 'Heard' | 'Adjourned' | 'Judgment/Ruling' | 'Struck Out';
   notes: string;
   nextAdjournedDate?: string;
+  branchId?: string;
+  branchName?: string;
 }
 
 export interface DeadlineRecord {
@@ -161,6 +189,8 @@ export interface DeadlineRecord {
   status: 'OVERDUE' | 'DUE TODAY' | 'DUE WITHIN 3 DAYS' | 'DUE THIS WEEK' | 'COMPLETED';
   priority: PriorityLevel;
   assignedLawyer: string;
+  branchId?: string;
+  branchName?: string;
 }
 
 export interface TaskRecord {
@@ -174,6 +204,8 @@ export interface TaskRecord {
   dueDate: string;
   status: 'To Do' | 'In Progress' | 'Waiting' | 'Completed' | 'Cancelled';
   description: string;
+  branchId?: string;
+  branchName?: string;
 }
 
 export interface LegalDocumentRecord {
@@ -290,6 +322,8 @@ export interface PropertyRecord {
   assignedLawyer: string;
   relatedMatterRef?: string;
   notes?: string;
+  branchId?: string;
+  branchName?: string;
 }
 
 export interface LandlordRecord {
@@ -347,6 +381,8 @@ export interface TenantRecord {
   assignedLawyer: string;
   relatedMatterRef?: string;
   notes?: string;
+  branchId?: string;
+  branchName?: string;
 }
 
 export interface TenancyAgreementRecord {
@@ -539,6 +575,8 @@ export interface InvoiceRecord {
   amountPaid: number;
   balance: number;
   status: 'Draft' | 'Sent' | 'Partially Paid' | 'Paid' | 'Overdue' | 'Pending';
+  branchId?: string;
+  branchName?: string;
 }
 
 export interface PaymentRecord {
@@ -555,6 +593,8 @@ export interface PaymentRecord {
   receivedBy?: string;
   status?: string;
   notes?: string;
+  branchId?: string;
+  branchName?: string;
 }
 
 export interface ExpenseRecord {
@@ -584,6 +624,8 @@ export interface ExpenseRecord {
   isBillable?: boolean;
   status?: string;
   approvedBy?: string;
+  branchId?: string;
+  branchName?: string;
 }
 
 export interface AuditLogRecord {
@@ -597,6 +639,8 @@ export interface AuditLogRecord {
   action: string;
   module: string;
   details: string;
+  branchId?: string;
+  branchName?: string;
 }
 
 export interface NotificationItem {

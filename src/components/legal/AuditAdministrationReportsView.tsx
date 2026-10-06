@@ -18,12 +18,18 @@ import {
   Eye,
   Check,
   TrendingUp,
+  Plus,
+  KeyRound,
+  Lock,
+  X,
+  UserPlus,
 } from 'lucide-react';
 import {
   AuditLogRecord,
   FirmProfile,
   UserProfile,
   UserRole,
+  BranchRecord,
   CaseRecord,
   MatterRecord,
   InvoiceRecord,
@@ -35,10 +41,16 @@ interface AuditAdministrationReportsViewProps {
   initialSubTab?: 'reports' | 'audit-trail' | 'administration';
   auditLogs: AuditLogRecord[];
   firmProfile: FirmProfile;
+  branches: BranchRecord[];
+  activeBranch: BranchRecord;
   users: UserProfile[];
+  currentUser: UserProfile;
   currentUserRole: UserRole;
   onChangeUserRole: (role: UserRole) => void;
   onUpdateFirmProfile: (profile: FirmProfile) => void;
+  onCreateBranch?: (branch: BranchRecord) => void;
+  onCreateStaffUser?: (user: UserProfile) => void;
+  onChangePassword?: (userId: string, newPass: string) => void;
   cases: CaseRecord[];
   matters: MatterRecord[];
   invoices: InvoiceRecord[];
@@ -50,10 +62,16 @@ export const AuditAdministrationReportsView: React.FC<AuditAdministrationReports
   initialSubTab = 'reports',
   auditLogs,
   firmProfile,
+  branches,
+  activeBranch,
   users,
+  currentUser,
   currentUserRole,
   onChangeUserRole,
   onUpdateFirmProfile,
+  onCreateBranch,
+  onCreateStaffUser,
+  onChangePassword,
   cases,
   matters,
   invoices,
@@ -65,6 +83,43 @@ export const AuditAdministrationReportsView: React.FC<AuditAdministrationReports
   const [auditModuleFilter, setAuditModuleFilter] = useState<string>('All');
   const [firmForm, setFirmForm] = useState<FirmProfile>(firmProfile);
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  // Modals
+  const [showCreateBranchModal, setShowCreateBranchModal] = useState(false);
+  const [showCreateStaffModal, setShowCreateStaffModal] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+
+  // New Branch Form State (Principal Partner Only)
+  const [newBranchName, setNewBranchName] = useState('');
+  const [newBranchCode, setNewBranchCode] = useState('');
+  const [newBranchCity, setNewBranchCity] = useState('');
+  const [newBranchState, setNewBranchState] = useState('');
+  const [newBranchAddress, setNewBranchAddress] = useState('');
+  const [newBranchPhone, setNewBranchPhone] = useState('+234 ');
+  const [newBranchEmail, setNewBranchEmail] = useState('');
+
+  // New Staff User Form State (Branch Administrator Only)
+  const [staffName, setStaffName] = useState('');
+  const [staffRole, setStaffRole] = useState<UserRole>('Associate / Counsel');
+  const [staffUsername, setStaffUsername] = useState('');
+  const [staffPassword, setStaffPassword] = useState('admin');
+  const [staffTitle, setStaffTitle] = useState('Associate Counsel');
+  const [staffBarNumber, setStaffBarNumber] = useState('SCN/');
+  const [staffPhone, setStaffPhone] = useState('+234 ');
+  const [staffEmail, setStaffEmail] = useState('');
+
+  // Change Password Form State
+  const [newPasswordVal, setNewPasswordVal] = useState('');
+  const [confirmPasswordVal, setConfirmPasswordVal] = useState('');
+  const [passMessage, setPassMessage] = useState<{ text: string; error: boolean } | null>(null);
+
+  const isPrincipalPartner =
+    currentUserRole === 'Managing Partner' ||
+    currentUserRole === 'Principal Partner' ||
+    currentUser.username === 'b.bale' ||
+    currentUser.username === 'principal';
+
+  const isAdministrator = currentUserRole === 'Administrator';
 
   const availableRoles: UserRole[] = [
     'Managing Partner',
@@ -86,18 +141,106 @@ export const AuditAdministrationReportsView: React.FC<AuditAdministrationReports
 
   const filteredLogs = auditLogs.filter((log) => {
     const matchesSearch =
-      log.userName.toLowerCase().includes(auditSearch.toLowerCase()) ||
+      (log.userName || log.user || '').toLowerCase().includes(auditSearch.toLowerCase()) ||
       log.details.toLowerCase().includes(auditSearch.toLowerCase()) ||
       log.action.toLowerCase().includes(auditSearch.toLowerCase());
     const matchesModule = auditModuleFilter === 'All' || log.module === auditModuleFilter;
     return matchesSearch && matchesModule;
   });
 
+  // Filter users: if Principal Partner, can see all users; if Branch Administrator, sees users belonging to activeBranch
+  const branchUsers = isPrincipalPartner
+    ? users
+    : users.filter((u) => u.branchId === activeBranch.id);
+
   const handleSaveFirmProfile = (e: React.FormEvent) => {
     e.preventDefault();
     onUpdateFirmProfile(firmForm);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 3000);
+  };
+
+  const handleCreateBranchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBranchName.trim()) return;
+
+    const newBranch: BranchRecord = {
+      id: 'branch-' + Date.now(),
+      name: newBranchName.trim(),
+      code: (newBranchCode || newBranchName.substring(0, 3)).toUpperCase(),
+      city: newBranchCity || 'Metropolis',
+      state: newBranchState || 'Nigeria',
+      address: newBranchAddress,
+      phone: newBranchPhone,
+      email: newBranchEmail || `info.${newBranchName.toLowerCase().replace(/\s+/g, '')}@bbbalelaw.ng`,
+      isHeadquarters: false,
+      dateCreated: new Date().toISOString().split('T')[0],
+    };
+
+    if (onCreateBranch) {
+      onCreateBranch(newBranch);
+    }
+
+    setShowCreateBranchModal(false);
+    setNewBranchName('');
+    setNewBranchCode('');
+    setNewBranchCity('');
+    setNewBranchState('');
+    setNewBranchAddress('');
+  };
+
+  const handleCreateStaffSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!staffName.trim() || !staffUsername.trim()) return;
+
+    const newStaff: UserProfile = {
+      id: 'user-' + Date.now(),
+      name: staffName.trim(),
+      username: staffUsername.trim().toLowerCase(),
+      password: staffPassword || 'admin',
+      email: staffEmail || `${staffUsername.trim().toLowerCase()}@bbbalelaw.ng`,
+      role: staffRole,
+      title: staffTitle || `${staffRole} (${activeBranch.name})`,
+      branchId: activeBranch.id,
+      branchName: activeBranch.name,
+      barNumber: staffBarNumber,
+      phone: staffPhone,
+      isInitialAdmin: false,
+      hasChangedDefaultPassword: false,
+    };
+
+    if (onCreateStaffUser) {
+      onCreateStaffUser(newStaff);
+    }
+
+    setShowCreateStaffModal(false);
+    setStaffName('');
+    setStaffUsername('');
+    setStaffPassword('admin');
+  };
+
+  const handleChangePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPasswordVal) {
+      setPassMessage({ text: 'Please enter a new password.', error: true });
+      return;
+    }
+    if (newPasswordVal !== confirmPasswordVal) {
+      setPassMessage({ text: 'Passwords do not match.', error: true });
+      return;
+    }
+
+    if (onChangePassword) {
+      onChangePassword(currentUser.id, newPasswordVal);
+    }
+
+    setPassMessage({ text: 'Password successfully updated!', error: false });
+    setTimeout(() => {
+      setShowChangePasswordModal(false);
+      setPassMessage(null);
+      setNewPasswordVal('');
+      setConfirmPasswordVal('');
+    }, 1500);
   };
 
   const formatNaira = (val: number) => '₦' + val.toLocaleString('en-NG');
@@ -109,26 +252,48 @@ export const AuditAdministrationReportsView: React.FC<AuditAdministrationReports
         <div>
           <div className="flex items-center gap-2">
             <h1 className="font-heading text-2xl font-bold text-[#0B1B3D]">
-              Chambers Governance, Audit & Analytics
+              Chambers Governance, Administration & Audit
             </h1>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#0B1B3D] text-[#D4AF37] border border-[#D4AF37]/30">
-              Chambers Registry FCT
+              {activeBranch.name}
             </span>
           </div>
           <p className="text-sm text-slate-500 mt-1">
-            Performance analytics, immutable audit logs for RPC compliance, chambers settings, and role permissions.
+            Branch personnel provisioning, multi-branch partition, RBAC security credentials, and compliance logs.
           </p>
         </div>
 
-        {subTab === 'reports' && (
-          <button
-            onClick={() => window.print()}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0B1B3D] text-white hover:bg-[#13274F] text-xs font-semibold shadow-xs"
-          >
-            <Printer className="w-3.5 h-3.5 text-[#D4AF37]" />
-            <span>Print Annual Chambers Report</span>
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {subTab === 'administration' && isAdministrator && (
+            <button
+              onClick={() => setShowCreateStaffModal(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#800020] text-amber-200 hover:bg-[#990026] text-xs font-semibold shadow-xs"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>Create Staff Login (My Branch)</span>
+            </button>
+          )}
+
+          {subTab === 'administration' && isPrincipalPartner && (
+            <button
+              onClick={() => setShowCreateBranchModal(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#0B1B3D] text-white hover:bg-[#13274F] text-xs font-semibold shadow-xs"
+            >
+              <Plus className="w-3.5 h-3.5 text-[#D4AF37]" />
+              <span>Establish New Branch</span>
+            </button>
+          )}
+
+          {subTab === 'administration' && (
+            <button
+              onClick={() => setShowChangePasswordModal(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs"
+            >
+              <KeyRound className="w-3.5 h-3.5 text-slate-500" />
+              <span>Change Password</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}
@@ -142,7 +307,7 @@ export const AuditAdministrationReportsView: React.FC<AuditAdministrationReports
           }`}
         >
           <FileCheck2 className="w-4 h-4 text-[#D4AF37]" />
-          <span>Reports & Chambers Analytics</span>
+          <span>Reports & Analytics</span>
         </button>
         <button
           onClick={() => setSubTab('audit-trail')}
@@ -153,7 +318,7 @@ export const AuditAdministrationReportsView: React.FC<AuditAdministrationReports
           }`}
         >
           <ShieldAlert className="w-4 h-4 text-[#800020]" />
-          <span>Chambers Audit Trail ({auditLogs.length})</span>
+          <span>Audit Trail ({auditLogs.length})</span>
         </button>
         <button
           onClick={() => setSubTab('administration')}
@@ -164,24 +329,23 @@ export const AuditAdministrationReportsView: React.FC<AuditAdministrationReports
           }`}
         >
           <Settings className="w-4 h-4" />
-          <span>Administration & User Roles</span>
+          <span>Branch Administration & Staff Credentials</span>
         </button>
       </div>
 
-      {/* SUBTAB 1: REPORTS & ANALYTICS */}
+      {/* SUBTAB 1: REPORTS */}
       {subTab === 'reports' && (
         <div className="space-y-6">
-          {/* Top metrics summary */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
-              <span className="text-xs font-semibold text-slate-400 uppercase">Active Litigation Dockets</span>
+              <span className="text-xs font-semibold text-slate-400 uppercase">Litigation Dockets ({activeBranch.name})</span>
               <p className="text-3xl font-bold text-[#0B1B3D] mt-1">{cases.length}</p>
-              <p className="text-xs text-emerald-600 mt-1">High Court, Appeal & Supreme Court</p>
+              <p className="text-xs text-emerald-600 mt-1">Superior courts of record</p>
             </div>
             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
               <span className="text-xs font-semibold text-slate-400 uppercase">Property Portfolio Yield</span>
               <p className="text-3xl font-bold text-[#800020] mt-1">{formatNaira(totalRentRoll)}</p>
-              <p className="text-xs text-slate-500 mt-1">{occupancyRate}% Unit Occupancy Rate</p>
+              <p className="text-xs text-slate-500 mt-1">{occupancyRate}% Occupancy Rate</p>
             </div>
             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
               <span className="text-xs font-semibold text-slate-400 uppercase">Total Professional Fees</span>
@@ -189,111 +353,15 @@ export const AuditAdministrationReportsView: React.FC<AuditAdministrationReports
               <p className="text-xs text-emerald-600 mt-1">{formatNaira(totalCollected)} Collected</p>
             </div>
             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
-              <span className="text-xs font-semibold text-slate-400 uppercase">Active Chambers Personnel</span>
-              <p className="text-3xl font-bold text-slate-800 mt-1">{users.length}</p>
-              <p className="text-xs text-slate-400 mt-1">Lawyers, Clerks, Property Officers</p>
-            </div>
-          </div>
-
-          {/* Breakdown grids */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Caseload Breakdown by Category */}
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
-              <h3 className="font-heading font-bold text-base text-[#0B1B3D] flex items-center gap-2">
-                <Scale className="w-4 h-4 text-[#D4AF37]" />
-                <span>Litigation Distribution by Legal Field</span>
-              </h3>
-              <div className="space-y-3 text-xs">
-                <div>
-                  <div className="flex justify-between font-semibold mb-1">
-                    <span>Land & Property Litigation</span>
-                    <span className="text-[#0B1B3D]">38% (12 Cases)</span>
-                  </div>
-                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                    <div className="bg-[#0B1B3D] h-full rounded-full" style={{ width: '38%' }}></div>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between font-semibold mb-1">
-                    <span>Commercial & Contract Disputes</span>
-                    <span className="text-[#800020]">25% (8 Cases)</span>
-                  </div>
-                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                    <div className="bg-[#800020] h-full rounded-full" style={{ width: '25%' }}></div>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between font-semibold mb-1">
-                    <span>Recovery of Premises & Tenancy Possession</span>
-                    <span className="text-amber-700">20% (6 Cases)</span>
-                  </div>
-                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                    <div className="bg-amber-600 h-full rounded-full" style={{ width: '20%' }}></div>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between font-semibold mb-1">
-                    <span>Sharia & Islamic Estate Succession</span>
-                    <span className="text-emerald-700">12% (4 Cases)</span>
-                  </div>
-                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                    <div className="bg-emerald-600 h-full rounded-full" style={{ width: '12%' }}></div>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between font-semibold mb-1">
-                    <span>Constitutional & Human Rights</span>
-                    <span className="text-blue-700">5% (2 Cases)</span>
-                  </div>
-                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                    <div className="bg-blue-600 h-full rounded-full" style={{ width: '5%' }}></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Counsel Caseload */}
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
-              <h3 className="font-heading font-bold text-base text-[#0B1B3D] flex items-center gap-2">
-                <Users className="w-4 h-4 text-[#800020]" />
-                <span>Counsel Caseload & Court Appearances</span>
-              </h3>
-              <div className="divide-y divide-slate-100 text-xs">
-                <div className="py-2.5 flex items-center justify-between">
-                  <div>
-                    <p className="font-bold text-slate-800">Barr. B. B. Bale, SAN</p>
-                    <p className="text-slate-400 text-[11px]">Principal Counsel · Supreme Court & Court of Appeal</p>
-                  </div>
-                  <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-800 font-semibold">14 Matters</span>
-                </div>
-                <div className="py-2.5 flex items-center justify-between">
-                  <div>
-                    <p className="font-bold text-slate-800">Hadiza Mohammed, Esq.</p>
-                    <p className="text-slate-400 text-[11px]">Partner · High Court FCT & Sharia Court of Appeal</p>
-                  </div>
-                  <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 font-semibold">11 Matters</span>
-                </div>
-                <div className="py-2.5 flex items-center justify-between">
-                  <div>
-                    <p className="font-bold text-slate-800">Chinedu Eze, Esq.</p>
-                    <p className="text-slate-400 text-[11px]">Senior Associate · Real Estate & Commercial Conveyancing</p>
-                  </div>
-                  <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 font-semibold">9 Matters</span>
-                </div>
-                <div className="py-2.5 flex items-center justify-between">
-                  <div>
-                    <p className="font-bold text-slate-800">Fatima Abdullahi, Esq.</p>
-                    <p className="text-slate-400 text-[11px]">Associate Counsel · Magistrate & District Courts</p>
-                  </div>
-                  <span className="px-2.5 py-1 rounded-full bg-purple-50 text-purple-800 font-semibold">6 Matters</span>
-                </div>
-              </div>
+              <span className="text-xs font-semibold text-slate-400 uppercase">Branch Staff Roster</span>
+              <p className="text-3xl font-bold text-slate-800 mt-1">{branchUsers.length}</p>
+              <p className="text-xs text-slate-400 mt-1">Registered branch personnel</p>
             </div>
           </div>
         </div>
       )}
 
-      {/* SUBTAB 2: CHAMBERS AUDIT TRAIL */}
+      {/* SUBTAB 2: AUDIT TRAIL */}
       {subTab === 'audit-trail' && (
         <div className="space-y-4">
           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -322,6 +390,7 @@ export const AuditAdministrationReportsView: React.FC<AuditAdministrationReports
                 <option value="Tenancy">Tenancy</option>
                 <option value="Finance">Finance</option>
                 <option value="Client Intake">Client Intake</option>
+                <option value="Administration">Administration</option>
               </select>
             </div>
           </div>
@@ -345,10 +414,10 @@ export const AuditAdministrationReportsView: React.FC<AuditAdministrationReports
                       {log.timestamp}
                     </td>
                     <td className="py-3 px-4 font-bold text-slate-800">
-                      {log.userName}
+                      {log.userName || log.user}
                     </td>
                     <td className="py-3 px-4 text-slate-500 text-[11px]">
-                      {log.userRole}
+                      {log.userRole || log.role}
                     </td>
                     <td className="py-3 px-4">
                       <span
@@ -377,71 +446,170 @@ export const AuditAdministrationReportsView: React.FC<AuditAdministrationReports
         </div>
       )}
 
-      {/* SUBTAB 3: ADMINISTRATION & ROLES */}
+      {/* SUBTAB 3: ADMINISTRATION */}
       {subTab === 'administration' && (
         <div className="space-y-6">
-          {/* Quick Active Role Switcher */}
-          <div className="bg-[#0B1B3D] text-white p-6 rounded-xl border border-[#D4AF37]/30 shadow-md">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <span className="text-xs text-[#D4AF37] font-semibold uppercase tracking-wider block">
-                  Simulate Role-Based Access Control (RBAC)
-                </span>
-                <h3 className="font-heading text-lg font-bold mt-0.5">
-                  Currently Viewing As: <span className="text-white underline">{currentUserRole}</span>
+          {/* Branch & User Context Card */}
+          <div className="bg-gradient-to-r from-[#0B1B3D] via-[#11244E] to-[#08152F] text-white p-6 rounded-2xl border border-[#D4AF37]/30 shadow-md">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#800020] text-amber-200 text-xs font-semibold border border-amber-400/30">
+                    {activeBranch.name}
+                  </span>
+                  <span className="text-xs text-slate-300">
+                    Active Session: <strong className="text-white">{currentUser.name}</strong> ({currentUser.role})
+                  </span>
+                </div>
+                <h3 className="font-heading text-lg font-bold text-white">
+                  Branch Isolation & Role-Based Administration
                 </h3>
-                <p className="text-xs text-slate-300 mt-1 max-w-xl">
-                  Switch roles instantly to inspect interface permission guards, restricted financial ledgers, and secretarial cause lists.
+                <p className="text-xs text-slate-300 max-w-2xl">
+                  {isPrincipalPartner
+                    ? 'As Principal Partner, you have oversight across all chambers branches and the exclusive privilege to create new branches.'
+                    : `You are authenticated in ${activeBranch.name}. You can only see records for this branch, and as Administrator, you are responsible for provisioning staff accounts for this branch.`}
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-2">
-                {availableRoles.map((role) => (
+                {isAdministrator && (
                   <button
-                    key={role}
-                    onClick={() => onChangeUserRole(role)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                      currentUserRole === role
-                        ? 'bg-[#800020] text-amber-200 border border-amber-400/40 shadow-xs'
-                        : 'bg-white/10 hover:bg-white/20 text-slate-200'
-                    }`}
+                    onClick={() => setShowCreateStaffModal(true)}
+                    className="px-4 py-2 bg-[#800020] hover:bg-[#990026] text-amber-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm"
                   >
-                    {role}
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>Create Branch Staff</span>
                   </button>
-                ))}
+                )}
+                <button
+                  onClick={() => setShowChangePasswordModal(true)}
+                  className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 border border-white/20"
+                >
+                  <KeyRound className="w-3.5 h-3.5 text-[#D4AF37]" />
+                  <span>Change Password</span>
+                </button>
               </div>
             </div>
           </div>
 
-          {/* User Roster Table */}
+          {/* Principal Partner: Branch Registry Card */}
+          {isPrincipalPartner && (
+            <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b pb-3">
+                <div>
+                  <h3 className="font-heading font-bold text-base text-[#0B1B3D] flex items-center gap-2">
+                    <Building2 className="w-5 h-5 text-[#800020]" />
+                    <span>Chambers Nationwide Branch Network ({branches.length} Active Branches)</span>
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Only Principal Partner (Barr. B. B. Bale, SAN) can create new branches.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowCreateBranchModal(true)}
+                  className="px-3.5 py-1.5 bg-[#0B1B3D] hover:bg-[#13274F] text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs"
+                >
+                  <Plus className="w-3.5 h-3.5 text-[#D4AF37]" />
+                  <span>Create New Branch</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {branches.map((b) => {
+                  const adminAcc = users.find((u) => u.branchId === b.id && u.role === 'Administrator');
+                  return (
+                    <div
+                      key={b.id}
+                      className={`p-4 rounded-xl border ${
+                        b.id === activeBranch.id ? 'border-[#800020] bg-amber-50/20' : 'border-slate-200 bg-white'
+                      } space-y-2`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-heading font-bold text-sm text-[#0B1B3D]">{b.name}</span>
+                        {b.isHeadquarters && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#800020] text-amber-200">
+                            HQ
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500">{b.address}</p>
+                      <div className="pt-2 border-t border-slate-100 text-[11px] space-y-1">
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Admin Username:</span>
+                          <span className="font-mono font-semibold text-slate-800">{b.name}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Default Password:</span>
+                          <span className="font-mono text-emerald-700">admin (modifiable)</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Branch Staff Roster & Login Details */}
           <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs space-y-4">
-            <h3 className="font-heading font-bold text-base text-[#0B1B3D]">
-              Chambers Personnel & Access Credentials
-            </h3>
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <h3 className="font-heading font-bold text-base text-[#0B1B3D] flex items-center gap-2">
+                  <Users className="w-5 h-5 text-[#0B1B3D]" />
+                  <span>
+                    {isPrincipalPartner ? 'All Chambers Staff Accounts (Chambers-Wide)' : `Staff Credentials for ${activeBranch.name}`}
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {isAdministrator
+                    ? 'Only you as Administrator can create login details for other staff and counsel in your branch.'
+                    : 'Personnel authorized for this branch.'}
+                </p>
+              </div>
+
+              {isAdministrator && (
+                <button
+                  onClick={() => setShowCreateStaffModal(true)}
+                  className="px-3.5 py-1.5 bg-[#800020] hover:bg-[#990026] text-amber-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>Add Staff Credentials</span>
+                </button>
+              )}
+            </div>
+
             <div className="overflow-x-auto border border-slate-200 rounded-lg">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 text-slate-600 uppercase border-b">
                   <tr>
                     <th className="py-2.5 px-3">Name</th>
-                    <th className="py-2.5 px-3">Official Role</th>
-                    <th className="py-2.5 px-3">Supreme Court Bar Enrolment #</th>
-                    <th className="py-2.5 px-3">Phone</th>
-                    <th className="py-2.5 px-3">Email</th>
+                    <th className="py-2.5 px-3">Login Username</th>
+                    <th className="py-2.5 px-3">Role</th>
+                    <th className="py-2.5 px-3">Branch</th>
+                    <th className="py-2.5 px-3">Supreme Court Bar #</th>
                     <th className="py-2.5 px-3">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {users.map((u) => (
+                  {branchUsers.map((u) => (
                     <tr key={u.id} className="hover:bg-slate-50">
                       <td className="py-2.5 px-3 font-bold text-slate-800">{u.name}</td>
+                      <td className="py-2.5 px-3 font-mono font-bold text-[#0B1B3D]">{u.username}</td>
                       <td className="py-2.5 px-3">
-                        <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 font-medium">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                            u.role === 'Administrator'
+                              ? 'bg-[#800020] text-amber-200'
+                              : u.role === 'Managing Partner'
+                              ? 'bg-amber-100 text-amber-900 font-bold'
+                              : 'bg-slate-100 text-slate-800'
+                          }`}
+                        >
                           {u.role}
                         </span>
                       </td>
-                      <td className="py-2.5 px-3 font-mono text-slate-500">{u.barNumber || 'N/A (Non-Lawyer Staff)'}</td>
-                      <td className="py-2.5 px-3 text-slate-600">{u.phone}</td>
-                      <td className="py-2.5 px-3 text-slate-600">{u.email}</td>
+                      <td className="py-2.5 px-3 text-slate-600">{u.branchName || activeBranch.name}</td>
+                      <td className="py-2.5 px-3 font-mono text-slate-500">{u.barNumber || 'N/A'}</td>
                       <td className="py-2.5 px-3">
                         <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-semibold">
                           Active
@@ -449,131 +617,343 @@ export const AuditAdministrationReportsView: React.FC<AuditAdministrationReports
                       </td>
                     </tr>
                   ))}
+                  {branchUsers.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="py-6 text-center text-slate-400">
+                        No staff accounts created in this branch yet.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
+        </div>
+      )}
 
-          {/* Chambers Firm Profile Form */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs space-y-4">
+      {/* CREATE NEW BRANCH MODAL (PRINCIPAL PARTNER ONLY) */}
+      {showCreateBranchModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
               <div>
-                <h3 className="font-heading font-bold text-base text-[#0B1B3D]">
-                  Chambers Registration Profile & Branch Directory
+                <h3 className="font-heading text-lg font-bold text-[#0B1B3D]">
+                  Establish New Chambers Branch
                 </h3>
-                <p className="text-xs text-slate-500">Official practice details printed on legal processes and invoices.</p>
+                <p className="text-xs text-slate-500">
+                  Exclusive Authority of Principal Counsel (Barr. B. B. Bale, SAN)
+                </p>
               </div>
-              {savedSuccess && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-emerald-100 text-emerald-800 text-xs font-semibold">
-                  <Check className="w-3.5 h-3.5" />
-                  Saved Successfully!
-                </span>
-              )}
+              <button onClick={() => setShowCreateBranchModal(false)}>
+                <X className="w-5 h-5 text-slate-400" />
+              </button>
             </div>
 
-            <form onSubmit={handleSaveFirmProfile} className="space-y-4 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <form onSubmit={handleCreateBranchSubmit} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Branch Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Port Harcourt Branch / Kaduna Branch"
+                  value={newBranchName}
+                  onChange={(e) => setNewBranchName(e.target.value)}
+                  className="w-full p-2 border rounded-lg font-bold text-slate-800"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Chambers Firm Name</label>
+                  <label className="block font-semibold text-slate-700 mb-1">Branch Code (3 letters)</label>
                   <input
                     type="text"
-                    value={firmForm.firmName}
-                    onChange={(e) => setFirmForm({ ...firmForm, firmName: e.target.value })}
-                    className="w-full p-2 border rounded-lg font-bold text-slate-800"
-                    required
+                    placeholder="e.g. PHC / KAD"
+                    value={newBranchCode}
+                    onChange={(e) => setNewBranchCode(e.target.value.toUpperCase())}
+                    maxLength={4}
+                    className="w-full p-2 border rounded-lg font-mono font-bold"
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Principal Counsel & Honors</label>
+                  <label className="block font-semibold text-slate-700 mb-1">State & City</label>
                   <input
                     type="text"
-                    value={firmForm.principal}
-                    onChange={(e) => setFirmForm({ ...firmForm, principal: e.target.value })}
-                    className="w-full p-2 border rounded-lg font-bold text-[#800020]"
+                    placeholder="e.g. Port Harcourt, Rivers State"
+                    value={newBranchCity}
+                    onChange={(e) => {
+                      setNewBranchCity(e.target.value);
+                      setNewBranchState(e.target.value);
+                    }}
+                    className="w-full p-2 border rounded-lg"
                     required
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Office Address</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Plot 24 Forces Avenue, Old GRA, Port Harcourt"
+                  value={newBranchAddress}
+                  onChange={(e) => setNewBranchAddress(e.target.value)}
+                  className="w-full p-2 border rounded-lg"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Primary Telephone</label>
+                  <label className="block font-semibold text-slate-700 mb-1">Telephone</label>
                   <input
                     type="text"
-                    value={firmForm.phone}
-                    onChange={(e) => setFirmForm({ ...firmForm, phone: e.target.value })}
+                    value={newBranchPhone}
+                    onChange={(e) => setNewBranchPhone(e.target.value)}
                     className="w-full p-2 border rounded-lg"
-                    required
                   />
                 </div>
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Official Email</label>
                   <input
                     type="email"
-                    value={firmForm.email}
-                    onChange={(e) => setFirmForm({ ...firmForm, email: e.target.value })}
+                    value={newBranchEmail}
+                    onChange={(e) => setNewBranchEmail(e.target.value)}
+                    placeholder="branch@bbbalelaw.ng"
                     className="w-full p-2 border rounded-lg"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">FIRS Tax ID (TIN)</label>
-                  <input
-                    type="text"
-                    value={firmForm.taxNumber}
-                    onChange={(e) => setFirmForm({ ...firmForm, taxNumber: e.target.value })}
-                    className="w-full p-2 border rounded-lg font-mono"
-                    required
                   />
                 </div>
               </div>
 
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-[11px] text-emerald-900 space-y-1">
+                <p className="font-bold flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>Automatic Administrator Account Provisioning:</span>
+                </p>
+                <p>
+                  Upon branch creation, an Administrator account is automatically initialized:
+                </p>
+                <p className="font-mono text-[10px]">
+                  Username: <strong>{newBranchName || '[Branch Name]'}</strong> · Password: <strong>admin</strong>
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateBranchModal(false)}
+                  className="px-4 py-2 border rounded-lg text-slate-700 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-[#0B1B3D] text-white rounded-lg font-semibold hover:bg-[#13274F]"
+                >
+                  Establish Branch
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CREATE STAFF CREDENTIALS MODAL (BRANCH ADMINISTRATOR ONLY) */}
+      {showCreateStaffModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Abuja Headquarters Address</label>
+                <h3 className="font-heading text-lg font-bold text-[#800020]">
+                  Create Staff Login Credentials
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Provisioning for <strong>{activeBranch.name}</strong> only
+                </p>
+              </div>
+              <button onClick={() => setShowCreateStaffModal(false)}>
+                <X className="w-5 h-5 text-slate-400" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateStaffSubmit} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Full Legal Name</label>
                 <input
                   type="text"
-                  value={firmForm.address}
-                  onChange={(e) => setFirmForm({ ...firmForm, address: e.target.value })}
+                  placeholder="e.g. Barr. Zainab Lawal / Chima Eze"
+                  value={staffName}
+                  onChange={(e) => setStaffName(e.target.value)}
                   className="w-full p-2 border rounded-lg"
                   required
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Lagos Branch Address</label>
+                  <label className="block font-semibold text-slate-700 mb-1">Assigned Role</label>
+                  <select
+                    value={staffRole}
+                    onChange={(e) => setStaffRole(e.target.value as UserRole)}
+                    className="w-full p-2 border rounded-lg bg-white"
+                  >
+                    <option value="Partner">Partner</option>
+                    <option value="Associate / Counsel">Associate / Counsel</option>
+                    <option value="Litigation Secretary">Litigation Secretary</option>
+                    <option value="Clerk">Clerk / Bailiff Liaison</option>
+                    <option value="Accounts Officer">Accounts Officer</option>
+                    <option value="Property/Facility Officer">Property/Facility Officer</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Login Username</label>
                   <input
                     type="text"
-                    value={firmForm.branchAddresses[0] || ''}
-                    onChange={(e) => {
-                      const newBranches = [...firmForm.branchAddresses];
-                      newBranches[0] = e.target.value;
-                      setFirmForm({ ...firmForm, branchAddresses: newBranches });
-                    }}
+                    placeholder="e.g. z.lawal"
+                    value={staffUsername}
+                    onChange={(e) => setStaffUsername(e.target.value)}
+                    className="w-full p-2 border rounded-lg font-mono font-bold"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Initial Password</label>
+                  <input
+                    type="text"
+                    value={staffPassword}
+                    onChange={(e) => setStaffPassword(e.target.value)}
+                    className="w-full p-2 border rounded-lg font-mono"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Bar Enrolment # (optional)</label>
+                  <input
+                    type="text"
+                    value={staffBarNumber}
+                    onChange={(e) => setStaffBarNumber(e.target.value)}
+                    placeholder="SCN/000000/2020"
+                    className="w-full p-2 border rounded-lg font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Phone Number</label>
+                  <input
+                    type="text"
+                    value={staffPhone}
+                    onChange={(e) => setStaffPhone(e.target.value)}
                     className="w-full p-2 border rounded-lg"
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Kano Branch Address</label>
+                  <label className="block font-semibold text-slate-700 mb-1">Official Email</label>
                   <input
-                    type="text"
-                    value={firmForm.branchAddresses[1] || ''}
-                    onChange={(e) => {
-                      const newBranches = [...firmForm.branchAddresses];
-                      newBranches[1] = e.target.value;
-                      setFirmForm({ ...firmForm, branchAddresses: newBranches });
-                    }}
+                    type="email"
+                    value={staffEmail}
+                    onChange={(e) => setStaffEmail(e.target.value)}
+                    placeholder="lawyer@bbbalelaw.ng"
                     className="w-full p-2 border rounded-lg"
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end pt-2">
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-900">
+                Staff member will be locked to <strong>{activeBranch.name}</strong> and cannot access records belonging to other branches.
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateStaffModal(false)}
+                  className="px-4 py-2 border rounded-lg text-slate-700 font-semibold"
+                >
+                  Cancel
+                </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-[#0B1B3D] text-white rounded-lg font-semibold hover:bg-[#13274F]"
+                  className="px-5 py-2 bg-[#800020] text-white rounded-lg font-semibold hover:bg-[#990026]"
                 >
-                  Save Chambers Profile
+                  Create Staff Account
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CHANGE PASSWORD MODAL */}
+      {showChangePasswordModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <h3 className="font-heading text-lg font-bold text-[#0B1B3D]">
+                  Change Password
+                </h3>
+                <p className="text-xs text-slate-500">
+                  User: <strong>{currentUser.username}</strong>
+                </p>
+              </div>
+              <button onClick={() => setShowChangePasswordModal(false)}>
+                <X className="w-5 h-5 text-slate-400" />
+              </button>
+            </div>
+
+            <form onSubmit={handleChangePasswordSubmit} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">New Password</label>
+                <input
+                  type="password"
+                  value={newPasswordVal}
+                  onChange={(e) => setNewPasswordVal(e.target.value)}
+                  placeholder="Enter new password"
+                  className="w-full p-2 border rounded-lg"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Confirm New Password</label>
+                <input
+                  type="password"
+                  value={confirmPasswordVal}
+                  onChange={(e) => setConfirmPasswordVal(e.target.value)}
+                  placeholder="Re-enter new password"
+                  className="w-full p-2 border rounded-lg"
+                  required
+                />
+              </div>
+
+              {passMessage && (
+                <div
+                  className={`p-2.5 rounded-lg text-xs flex items-center gap-2 ${
+                    passMessage.error
+                      ? 'bg-rose-50 border border-rose-200 text-rose-700'
+                      : 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                  }`}
+                >
+                  <span>{passMessage.text}</span>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowChangePasswordModal(false)}
+                  className="px-4 py-2 border rounded-lg text-slate-700 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-[#0B1B3D] text-white rounded-lg font-semibold hover:bg-[#13274F]"
+                >
+                  Save Password
                 </button>
               </div>
             </form>

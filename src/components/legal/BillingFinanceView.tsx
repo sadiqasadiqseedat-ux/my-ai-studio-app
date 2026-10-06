@@ -94,7 +94,7 @@ export const BillingFinanceView: React.FC<BillingFinanceViewProps> = ({
     const matchesSearch =
       inv.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       inv.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      inv.matterReference.toLowerCase().includes(searchQuery.toLowerCase());
+      (inv.matterReference || inv.matterRef || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'All' || inv.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -1005,7 +1005,7 @@ export const BillingFinanceView: React.FC<BillingFinanceViewProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-                {selectedInvoice.items.map((item, i) => (
+                {(selectedInvoice.items || []).map((item, i) => (
                   <tr key={i} className="hover:bg-slate-50">
                     <td className="py-2.5 px-3 text-slate-800">{item.description}</td>
                     <td className="py-2.5 px-3 text-right font-mono font-semibold">
@@ -1021,11 +1021,11 @@ export const BillingFinanceView: React.FC<BillingFinanceViewProps> = ({
               <div className="w-64 space-y-1.5 text-right">
                 <div className="flex justify-between text-slate-600">
                   <span>Subtotal:</span>
-                  <span className="font-mono">{formatNaira(selectedInvoice.subtotal)}</span>
+                  <span className="font-mono">{formatNaira(selectedInvoice.subtotal || selectedInvoice.professionalFees || 0)}</span>
                 </div>
                 <div className="flex justify-between text-slate-600">
                   <span>VAT (7.5%):</span>
-                  <span className="font-mono">{formatNaira(selectedInvoice.vat)}</span>
+                  <span className="font-mono">{formatNaira(selectedInvoice.vat || 0)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-sm text-[#0B1B3D] border-t border-slate-300 pt-1.5">
                   <span>Total Amount:</span>

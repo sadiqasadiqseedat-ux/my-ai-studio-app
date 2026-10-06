@@ -18,12 +18,16 @@ import {
   Globe,
   ChevronDown,
 } from 'lucide-react';
-import { UserRole, NotificationItem } from '../../types/legal';
+import { UserRole, NotificationItem, BranchRecord, UserProfile } from '../../types/legal';
 
 interface LegalNavbarProps {
   onToggleMobileSidebar: () => void;
+  currentUser: UserProfile;
   currentUserRole: UserRole;
   onChangeUserRole: (role: UserRole) => void;
+  branches: BranchRecord[];
+  activeBranchId: string;
+  onSelectBranch: (branchId: string) => void;
   onOpenQuickAction: (actionType: string) => void;
   onSearchSelect: (type: string, id: string) => void;
   notifications: NotificationItem[];
@@ -36,8 +40,12 @@ interface LegalNavbarProps {
 
 export const LegalNavbar: React.FC<LegalNavbarProps> = ({
   onToggleMobileSidebar,
+  currentUser,
   currentUserRole,
   onChangeUserRole,
+  branches,
+  activeBranchId,
+  onSelectBranch,
   onOpenQuickAction,
   notifications,
   onMarkNotificationAsRead,
@@ -48,7 +56,16 @@ export const LegalNavbar: React.FC<LegalNavbarProps> = ({
 }) => {
   const [quickMenuOpen, setQuickMenuOpen] = useState(false);
   const [roleMenuOpen, setRoleMenuOpen] = useState(false);
+  const [branchMenuOpen, setBranchMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+
+  const isPrincipalPartner =
+    currentUserRole === 'Managing Partner' ||
+    currentUserRole === 'Principal Partner' ||
+    currentUser.username === 'b.bale' ||
+    currentUser.username === 'principal';
+
+  const activeBranch = branches.find((b) => b.id === activeBranchId);
 
   const availableRoles: UserRole[] = [
     'Managing Partner',
@@ -84,9 +101,61 @@ export const LegalNavbar: React.FC<LegalNavbarProps> = ({
                 <span className="font-heading font-bold text-sm sm:text-base tracking-wide text-white">
                   B. B. BALE & CO.
                 </span>
-                <span className="hidden md:inline px-1.5 py-0.5 rounded text-[10px] bg-[#800020] text-amber-200 font-semibold border border-amber-500/30">
-                  LEGAL & PROPERTY SYSTEM
-                </span>
+                
+                {/* Branch Badge / Branch Switcher for Principal Partner */}
+                {isPrincipalPartner ? (
+                  <div className="relative">
+                    <button
+                      onClick={() => setBranchMenuOpen(!branchMenuOpen)}
+                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] bg-[#800020] text-amber-200 font-semibold border border-amber-500/40 hover:bg-[#990026] transition shadow-xs"
+                      title="Principal Partner: Switch Branch View"
+                    >
+                      <Building2 className="w-3 h-3 text-[#D4AF37]" />
+                      <span>{activeBranchId === 'all' ? 'All Branches (Chambers-Wide)' : activeBranch?.name || 'Abuja HQ'}</span>
+                      <ChevronDown className="w-3 h-3 text-amber-200" />
+                    </button>
+
+                    {branchMenuOpen && (
+                      <div className="absolute left-0 mt-1.5 w-60 bg-white text-slate-800 border border-slate-200 rounded-xl shadow-2xl py-1.5 z-50 text-xs">
+                        <div className="px-3 py-1 font-bold text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                          Principal Partner Jurisdiction
+                        </div>
+                        <button
+                          onClick={() => {
+                            onSelectBranch('all');
+                            setBranchMenuOpen(false);
+                          }}
+                          className={`w-full px-3 py-2 text-left hover:bg-slate-50 flex items-center justify-between ${
+                            activeBranchId === 'all' ? 'font-bold text-[#800020] bg-amber-50/50' : 'text-slate-700'
+                          }`}
+                        >
+                          <span>🌐 All Branches (Chambers-Wide)</span>
+                          {activeBranchId === 'all' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+                        </button>
+                        {branches.map((b) => (
+                          <button
+                            key={b.id}
+                            onClick={() => {
+                              onSelectBranch(b.id);
+                              setBranchMenuOpen(false);
+                            }}
+                            className={`w-full px-3 py-2 text-left hover:bg-slate-50 flex items-center justify-between ${
+                              activeBranchId === b.id ? 'font-bold text-[#0B1B3D] bg-slate-100' : 'text-slate-700'
+                            }`}
+                          >
+                            <span>🏢 {b.name}</span>
+                            {activeBranchId === b.id && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-[#800020] text-amber-200 font-semibold border border-amber-500/30">
+                    <Building2 className="w-3 h-3" />
+                    <span>{currentUser.branchName || activeBranch?.name || 'Branch'}</span>
+                  </span>
+                )}
               </div>
               <p className="text-[10px] text-slate-400 hidden sm:block">
                 Secure. Organized. Professional.

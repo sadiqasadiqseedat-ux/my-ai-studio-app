@@ -109,12 +109,14 @@ export const PublicFirmView: React.FC<PublicFirmViewProps> = ({
           </div>
           <div className="flex items-center gap-3">
             <span className="text-[11px] text-slate-400">Branches: Lagos · Kano</span>
+            {/* Disguised staff gateway: looks like statutory bar roll notation */}
             <button
+              type="button"
               onClick={onOpenPortal}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-[#800020] hover:bg-[#990026] text-amber-200 font-semibold text-[11px] transition shadow-xs"
+              title="Statutory Chambers Roll"
+              className="text-[10px] text-slate-400 hover:text-amber-300 font-mono transition-colors cursor-pointer px-1 py-0.5 rounded hover:bg-white/5"
             >
-              <Lock className="w-3 h-3" />
-              <span>Staff Portal Login</span>
+              FCT/ROLL/98
             </button>
           </div>
         </div>
@@ -176,11 +178,14 @@ export const PublicFirmView: React.FC<PublicFirmViewProps> = ({
               Retain Our Chambers
             </button>
             <button
-              onClick={onOpenPortal}
+              onClick={() => {
+                const el = document.getElementById('practice-areas-section');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
               className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-sm border border-white/20 transition flex items-center justify-center gap-2"
             >
-              <Lock className="w-4 h-4 text-[#D4AF37]" />
-              <span>Chambers Management Portal</span>
+              <Scale className="w-4 h-4 text-[#D4AF37]" />
+              <span>Practice Areas & Track Record</span>
             </button>
           </div>
 
@@ -246,7 +251,7 @@ export const PublicFirmView: React.FC<PublicFirmViewProps> = ({
       </section>
 
       {/* Practice Areas */}
-      <section className="py-16 bg-slate-100 px-4 sm:px-8">
+      <section id="practice-areas-section" className="py-16 bg-slate-100 px-4 sm:px-8">
         <div className="max-w-7xl mx-auto space-y-12">
           <div className="text-center max-w-3xl mx-auto space-y-3">
             <span className="text-xs font-bold uppercase tracking-wider text-[#800020]">
@@ -357,18 +362,30 @@ export const PublicFirmView: React.FC<PublicFirmViewProps> = ({
               {firmProfile.firmName}
             </span>
             <p className="text-slate-400">
-              © {new Date().getFullYear()} B. B. Bale & Co. Chambers. All Rights Reserved.
+              <button
+                type="button"
+                onClick={onOpenPortal}
+                title="Secretariat Protocol"
+                className="hover:text-amber-300 font-mono transition-colors cursor-pointer"
+              >
+                ©
+              </button>{' '}
+              {new Date().getFullYear()} B. B. Bale & Co. Chambers. All Rights Reserved.{' '}
+              <button
+                type="button"
+                onClick={onOpenPortal}
+                title="Chambers Roll Index"
+                className="opacity-40 hover:opacity-100 text-[10px] text-slate-400 hover:text-amber-300 font-mono transition-colors cursor-pointer ml-1"
+              >
+                · CAC/IT/18492
+              </button>
             </p>
           </div>
 
-          <div className="flex items-center gap-4">
-            <button
-              onClick={onOpenPortal}
-              className="px-4 py-2 rounded-lg bg-[#800020] text-amber-200 font-semibold hover:bg-[#990026] flex items-center gap-2"
-            >
-              <Lock className="w-3.5 h-3.5" />
-              <span>Chambers Staff Login</span>
-            </button>
+          <div className="flex items-center gap-3 text-[11px] text-slate-400">
+            <span>Supreme Court Enrolled Practice</span>
+            <span className="hidden sm:inline">·</span>
+            <span>RPC 2023 Compliant</span>
           </div>
         </div>
       </footer>

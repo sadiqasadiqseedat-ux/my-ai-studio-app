@@ -553,11 +553,11 @@ export const TenancyNoticesTransactionsView: React.FC<TenancyNoticesTransactions
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[10px]">Consideration / Value:</span>
-                    <span className="font-bold text-[#0B1B3D] text-sm">{formatNaira(tx.contractSum)}</span>
+                    <span className="font-bold text-[#0B1B3D] text-sm">{formatNaira(tx.contractSum || tx.transactionValue || 0)}</span>
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[10px]">Chambers Legal Fee:</span>
-                    <span className="font-bold text-emerald-700 text-sm">{formatNaira(tx.legalFee)}</span>
+                    <span className="font-bold text-emerald-700 text-sm">{formatNaira(tx.legalFee || tx.legalFees || 0)}</span>
                   </div>
                 </div>
 

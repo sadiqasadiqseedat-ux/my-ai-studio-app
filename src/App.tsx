@@ -28,11 +28,12 @@ import {
   FirmProfile,
   UserProfile,
   UserRole,
-  NoticeRecord,
+  BranchRecord,
 } from './types/legal';
 
 import {
   initialFirmProfile,
+  initialBranches,
   initialUsers,
   initialClients,
   initialMatters,
@@ -75,33 +76,28 @@ import { TenancyNoticesTransactionsView } from './components/legal/TenancyNotice
 import { AuditAdministrationReportsView } from './components/legal/AuditAdministrationReportsView';
 import { AiLegalAssistantView } from './components/legal/AiLegalAssistantView';
 import { PublicFirmView } from './components/legal/PublicFirmView';
+import { StaffLoginModal } from './components/legal/StaffLoginModal';
 
 export default function App() {
   // Navigation & Role State
-  const [currentTab, setCurrentTab] = useState<string>('dashboard');
+  const [currentTab, setCurrentTab] = useState<string>('public-site');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [currentUserRole, setCurrentUserRole] = useState<UserRole>('Managing Partner');
   const [globalSearchQuery, setGlobalSearchQuery] = useState('');
 
-  // Toast Notification state
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  // Authentication & Branch State
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3500);
-  };
-
-  // 1. Firm Profile
-  const [firmProfile, setFirmProfile] = useState<FirmProfile>(() => {
+  // 1. Branches State (Persisted)
+  const [branches, setBranches] = useState<BranchRecord[]>(() => {
     try {
-      const saved = localStorage.getItem('bbbc_firm_profile');
-      return saved ? JSON.parse(saved) : initialFirmProfile;
+      const saved = localStorage.getItem('bbbc_branches');
+      return saved ? JSON.parse(saved) : initialBranches;
     } catch {
-      return initialFirmProfile;
+      return initialBranches;
     }
   });
 
-  // 2. Users
+  // 2. Users State (Persisted)
   const [users, setUsers] = useState<UserProfile[]>(() => {
     try {
       const saved = localStorage.getItem('bbbc_users');
@@ -111,7 +107,47 @@ export default function App() {
     }
   });
 
-  // 3. Clients
+  // 3. Current Authenticated User (Default is Principal Partner or saved)
+  const [currentUser, setCurrentUser] = useState<UserProfile>(() => {
+    try {
+      const saved = localStorage.getItem('bbbc_current_user');
+      return saved ? JSON.parse(saved) : initialUsers[3]; // Barr. B. B. Bale, SAN (Principal Partner)
+    } catch {
+      return initialUsers[3];
+    }
+  });
+
+  // 4. Active Branch Context ('all' for Principal Partner, or specific branch ID)
+  const [activeBranchId, setActiveBranchId] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('bbbc_active_branch_id');
+      return saved ? saved : 'branch-abj';
+    } catch {
+      return 'branch-abj';
+    }
+  });
+
+  const [currentUserRole, setCurrentUserRole] = useState<UserRole>(currentUser.role);
+
+  // Toast Notification state
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 4000);
+  };
+
+  // 5. Firm Profile
+  const [firmProfile, setFirmProfile] = useState<FirmProfile>(() => {
+    try {
+      const saved = localStorage.getItem('bbbc_firm_profile');
+      return saved ? JSON.parse(saved) : initialFirmProfile;
+    } catch {
+      return initialFirmProfile;
+    }
+  });
+
+  // 6. Clients
   const [clients, setClients] = useState<ClientRecord[]>(() => {
     try {
       const saved = localStorage.getItem('bbbc_clients');
@@ -121,7 +157,7 @@ export default function App() {
     }
   });
 
-  // 4. Matters
+  // 7. Matters
   const [matters, setMatters] = useState<MatterRecord[]>(() => {
     try {
       const saved = localStorage.getItem('bbbc_matters');
@@ -131,7 +167,7 @@ export default function App() {
     }
   });
 
-  // 5. Litigation Cases
+  // 8. Litigation Cases
   const [cases, setCases] = useState<CaseRecord[]>(() => {
     try {
       const saved = localStorage.getItem('bbbc_cases');
@@ -141,7 +177,7 @@ export default function App() {
     }
   });
 
-  // 6. Court Diary
+  // 9. Court Diary
   const [courtDiary, setCourtDiary] = useState<CourtDiaryItem[]>(() => {
     try {
       const saved = localStorage.getItem('bbbc_court_diary');
@@ -151,7 +187,7 @@ export default function App() {
     }
   });
 
-  // 7. Deadlines & Tasks
+  // 10. Deadlines & Tasks
   const [deadlines, setDeadlines] = useState<DeadlineRecord[]>(() => {
     try {
       const saved = localStorage.getItem('bbbc_deadlines');
@@ -170,7 +206,7 @@ export default function App() {
     }
   });
 
-  // 8. Documents & Templates
+  // 11. Documents & Templates
   const [documents, setDocuments] = useState<LegalDocumentRecord[]>(() => {
     try {
       const saved = localStorage.getItem('bbbc_documents');
@@ -182,7 +218,7 @@ export default function App() {
 
   const [templates] = useState<LegalTemplate[]>(initialTemplates);
 
-  // 9. Correspondence, Research, Appointments
+  // 12. Correspondence, Research, Appointments
   const [correspondence, setCorrespondence] = useState<CorrespondenceRecord[]>(() => {
     try {
       const saved = localStorage.getItem('bbbc_correspondence');
@@ -210,7 +246,7 @@ export default function App() {
     }
   });
 
-  // 10. Properties, Landlords, Tenants
+  // 13. Properties, Landlords, Tenants
   const [properties, setProperties] = useState<PropertyRecord[]>(() => {
     try {
       const saved = localStorage.getItem('bbbc_properties');
@@ -240,7 +276,7 @@ export default function App() {
 
   const [units] = useState<UnitRecord[]>(initialUnits);
 
-  // 11. Invoices, Payments, Expenses
+  // 14. Invoices, Payments, Expenses
   const [invoices, setInvoices] = useState<InvoiceRecord[]>(() => {
     try {
       const saved = localStorage.getItem('bbbc_invoices');
@@ -268,7 +304,7 @@ export default function App() {
     }
   });
 
-  // 12. Audit Logs & Notifications
+  // 15. Audit Logs & Notifications
   const [auditLogs, setAuditLogs] = useState<AuditLogRecord[]>(() => {
     try {
       const saved = localStorage.getItem('bbbc_audit_logs');
@@ -289,11 +325,20 @@ export default function App() {
 
   // Persistence Effects
   useEffect(() => {
-    localStorage.setItem('bbbc_firm_profile', JSON.stringify(firmProfile));
-  }, [firmProfile]);
+    localStorage.setItem('bbbc_branches', JSON.stringify(branches));
+  }, [branches]);
   useEffect(() => {
     localStorage.setItem('bbbc_users', JSON.stringify(users));
   }, [users]);
+  useEffect(() => {
+    localStorage.setItem('bbbc_current_user', JSON.stringify(currentUser));
+  }, [currentUser]);
+  useEffect(() => {
+    localStorage.setItem('bbbc_active_branch_id', activeBranchId);
+  }, [activeBranchId]);
+  useEffect(() => {
+    localStorage.setItem('bbbc_firm_profile', JSON.stringify(firmProfile));
+  }, [firmProfile]);
   useEffect(() => {
     localStorage.setItem('bbbc_clients', JSON.stringify(clients));
   }, [clients]);
@@ -349,26 +394,181 @@ export default function App() {
     localStorage.setItem('bbbc_notifications', JSON.stringify(notifications));
   }, [notifications]);
 
+  // Current active branch object
+  const activeBranch = branches.find((b) => b.id === activeBranchId) || branches[0];
+
+  const isPrincipalPartner =
+    currentUserRole === 'Managing Partner' ||
+    currentUserRole === 'Principal Partner' ||
+    currentUser.username === 'b.bale' ||
+    currentUser.username === 'principal';
+
   // Audit Log Helper
   const logAudit = (action: string, module: string, details: string) => {
     const newLog: AuditLogRecord = {
       id: 'log-' + Date.now(),
-      userId: 'user-active',
-      userName: currentUserRole === 'Managing Partner' ? 'Barr. B. B. Bale, SAN' : currentUserRole,
+      user: currentUser.name,
+      role: currentUserRole,
+      userName: currentUser.name,
       userRole: currentUserRole,
       action,
       module,
       details,
+      branchId: activeBranch.id,
+      branchName: activeBranch.name,
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
     };
     setAuditLogs((prev) => [newLog, ...prev]);
   };
 
-  // Handlers for data updates
+  /* ========================================================
+     MULTI-BRANCH PARTITIONING & DATA FILTERING
+     "AND USER FROM OTHER BRANCH CANNOT SEE ANYTHING FROM OTHER BRANCH.
+      AND ONLY PRINCIPAL PARTNER CAN SEE THROUGH ALL THE BRANCHES"
+  ======================================================== */
+  const shouldFilterBranch = !isPrincipalPartner || activeBranchId !== 'all';
+
+  const branchFilteredClients = shouldFilterBranch
+    ? clients.filter((c) => !c.branchId || c.branchId === activeBranch.id)
+    : clients;
+
+  const branchFilteredMatters = shouldFilterBranch
+    ? matters.filter((m) => !m.branchId || m.branchId === activeBranch.id)
+    : matters;
+
+  const branchFilteredCases = shouldFilterBranch
+    ? cases.filter((c) => !c.branchId || c.branchId === activeBranch.id)
+    : cases;
+
+  const branchFilteredCourtDiary = shouldFilterBranch
+    ? courtDiary.filter((c) => !c.branchId || c.branchId === activeBranch.id)
+    : courtDiary;
+
+  const branchFilteredDeadlines = shouldFilterBranch
+    ? deadlines.filter((d) => !d.branchId || d.branchId === activeBranch.id)
+    : deadlines;
+
+  const branchFilteredTasks = shouldFilterBranch
+    ? tasks.filter((t) => !t.branchId || t.branchId === activeBranch.id)
+    : tasks;
+
+  const branchFilteredProperties = shouldFilterBranch
+    ? properties.filter((p) => !p.branchId || p.branchId === activeBranch.id)
+    : properties;
+
+  const branchFilteredTenants = shouldFilterBranch
+    ? tenants.filter((t) => !t.branchId || t.branchId === activeBranch.id)
+    : tenants;
+
+  const branchFilteredInvoices = shouldFilterBranch
+    ? invoices.filter((i) => !i.branchId || i.branchId === activeBranch.id)
+    : invoices;
+
+  const branchFilteredPayments = shouldFilterBranch
+    ? payments.filter((p) => !p.branchId || p.branchId === activeBranch.id)
+    : payments;
+
+  const branchFilteredExpenses = shouldFilterBranch
+    ? expenses.filter((e) => !e.branchId || e.branchId === activeBranch.id)
+    : expenses;
+
+  const branchFilteredAuditLogs = shouldFilterBranch
+    ? auditLogs.filter((l) => !l.branchId || l.branchId === activeBranch.id)
+    : auditLogs;
+
+  /* ========================================================
+     AUTHENTICATION & LOGIN HANDLERS
+  ======================================================== */
+  const handleLoginSuccess = (user: UserProfile, branch: BranchRecord) => {
+    setCurrentUser(user);
+    setCurrentUserRole(user.role);
+    setActiveBranchId(branch.id);
+    setCurrentTab('dashboard');
+
+    logAudit('STAFF_LOGIN', 'Authentication', `Logged into ${branch.name} as ${user.name} (${user.role})`);
+    showToast(`Authenticated into ${branch.name} as ${user.name}`);
+
+    // If initial administrator using default password 'admin', give warning
+    if (user.role === 'Administrator' && (!user.hasChangedDefaultPassword || user.password === 'admin')) {
+      setTimeout(() => {
+        showToast(`Default Password Notice: You are using the default Administrator password 'admin'. Please change your password in Administration.`);
+      }, 1500);
+    }
+  };
+
+  const handleLogout = () => {
+    setCurrentTab('public-site');
+    showToast('Logged out of Chambers Portal.');
+  };
+
+  /* ========================================================
+     PRINCIPAL PARTNER: CREATE BRANCH & AUTO-PROVISION ADMIN
+  ======================================================== */
+  const handleCreateBranch = (newBranch: BranchRecord) => {
+    setBranches((prev) => [...prev, newBranch]);
+
+    // Automatically create Branch Administrator:
+    // Username = Branch Name
+    // Initial Password = 'admin'
+    const newAdminUser: UserProfile = {
+      id: 'admin-' + Date.now(),
+      name: `${newBranch.name} Administrator`,
+      username: newBranch.name,
+      password: 'admin',
+      email: `admin.${newBranch.code.toLowerCase()}@bbbalelaw.ng`,
+      role: 'Administrator',
+      title: `Branch Administrator (${newBranch.name})`,
+      branchId: newBranch.id,
+      branchName: newBranch.name,
+      phone: newBranch.phone,
+      isInitialAdmin: true,
+      hasChangedDefaultPassword: false,
+    };
+
+    setUsers((prev) => [...prev, newAdminUser]);
+    logAudit('CREATE_BRANCH', 'Administration', `Principal Partner established new branch: ${newBranch.name}`);
+    showToast(`Branch "${newBranch.name}" created with Administrator username "${newBranch.name}" & initial password "admin".`);
+  };
+
+  /* ========================================================
+     BRANCH ADMINISTRATOR: CREATE STAFF FOR OWN BRANCH
+  ======================================================== */
+  const handleCreateStaffUser = (staff: UserProfile) => {
+    setUsers((prev) => [...prev, staff]);
+    logAudit('CREATE_STAFF_ACCOUNT', 'Administration', `Administrator provisioned credentials for ${staff.name} (${staff.role}) in ${activeBranch.name}`);
+    showToast(`Staff credentials created for "${staff.name}" (${staff.username}) in ${activeBranch.name}.`);
+  };
+
+  /* ========================================================
+     CHANGE PASSWORD
+  ======================================================== */
+  const handleChangePassword = (userId: string, newPass: string) => {
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === userId
+          ? { ...u, password: newPass, hasChangedDefaultPassword: true }
+          : u
+      )
+    );
+    if (currentUser.id === userId) {
+      setCurrentUser((prev) => ({ ...prev, password: newPass, hasChangedDefaultPassword: true }));
+    }
+    logAudit('PASSWORD_CHANGE', 'Authentication', `Password updated for user ID ${userId}`);
+    showToast('Password successfully changed.');
+  };
+
+  /* ========================================================
+     DATA MUTATIONS (TAGGED TO CURRENT BRANCH)
+  ======================================================== */
   const handleAddClient = (client: ClientRecord) => {
-    setClients((prev) => [client, ...prev]);
-    logAudit('CREATE_CLIENT', 'Clients', `Added new client: ${client.name} (${client.clientType})`);
-    showToast(`Client "${client.name}" registered successfully.`);
+    const tagged = {
+      ...client,
+      branchId: client.branchId || activeBranch.id,
+      branchName: client.branchName || activeBranch.name,
+    };
+    setClients((prev) => [tagged, ...prev]);
+    logAudit('CREATE_CLIENT', 'Clients', `Added client: ${tagged.name} (${tagged.clientType})`);
+    showToast(`Client "${tagged.name}" registered in ${activeBranch.name}.`);
   };
 
   const handleUpdateClient = (client: ClientRecord) => {
@@ -387,9 +587,14 @@ export default function App() {
   };
 
   const handleAddMatter = (matter: MatterRecord) => {
-    setMatters((prev) => [matter, ...prev]);
-    logAudit('CREATE_MATTER', 'Matters', `Opened new matter: ${matter.reference} - ${matter.title}`);
-    showToast(`Matter "${matter.reference}" registered.`);
+    const tagged = {
+      ...matter,
+      branchId: matter.branchId || activeBranch.id,
+      branchName: matter.branchName || activeBranch.name,
+    };
+    setMatters((prev) => [tagged, ...prev]);
+    logAudit('CREATE_MATTER', 'Matters', `Opened matter: ${tagged.reference} - ${tagged.title}`);
+    showToast(`Matter "${tagged.reference}" registered.`);
   };
 
   const handleUpdateMatter = (matter: MatterRecord) => {
@@ -405,9 +610,14 @@ export default function App() {
   };
 
   const handleAddCase = (caseItem: CaseRecord) => {
-    setCases((prev) => [caseItem, ...prev]);
-    logAudit('CREATE_CASE', 'Litigation', `Instituted litigation case: ${caseItem.suitNumber} (${caseItem.plaintiff} v. ${caseItem.defendant})`);
-    showToast(`Case "${caseItem.suitNumber}" created in docket.`);
+    const tagged = {
+      ...caseItem,
+      branchId: caseItem.branchId || activeBranch.id,
+      branchName: caseItem.branchName || activeBranch.name,
+    };
+    setCases((prev) => [tagged, ...prev]);
+    logAudit('CREATE_CASE', 'Litigation', `Instituted litigation case: ${tagged.suitNumber} (${tagged.plaintiffClaimant || tagged.plaintiff} v. ${tagged.defendantRespondent || tagged.defendant})`);
+    showToast(`Case "${tagged.suitNumber}" created in docket.`);
   };
 
   const handleUpdateCase = (caseItem: CaseRecord) => {
@@ -423,9 +633,14 @@ export default function App() {
   };
 
   const handleAddCourtDate = (entry: CourtDiaryItem) => {
-    setCourtDiary((prev) => [entry, ...prev]);
-    logAudit('SCHEDULE_COURT_DATE', 'Court Diary', `Scheduled appearance for ${entry.courtDate}: ${entry.suitNumber} at ${entry.courtName}`);
-    showToast(`Court appearance scheduled for ${entry.courtDate}.`);
+    const tagged = {
+      ...entry,
+      branchId: entry.branchId || activeBranch.id,
+      branchName: entry.branchName || activeBranch.name,
+    };
+    setCourtDiary((prev) => [tagged, ...prev]);
+    logAudit('SCHEDULE_COURT_DATE', 'Court Diary', `Scheduled appearance for ${tagged.courtDate}: ${tagged.suitNumber} at ${tagged.courtName}`);
+    showToast(`Court appearance scheduled for ${tagged.courtDate}.`);
   };
 
   const handleUpdateCourtDate = (entry: CourtDiaryItem) => {
@@ -446,8 +661,8 @@ export default function App() {
 
   const handleAddTask = (t: TaskRecord) => {
     setTasks((prev) => [t, ...prev]);
-    logAudit('CREATE_TASK', 'Tasks', `Assigned task: ${t.title} to ${t.assignedTo}`);
-    showToast(`Task assigned to ${t.assignedTo}.`);
+    logAudit('CREATE_TASK', 'Tasks', `Assigned task: ${t.title} to ${t.assignedPerson || t.assignedTo}`);
+    showToast(`Task assigned to ${t.assignedPerson || t.assignedTo}.`);
   };
 
   const handleUpdateTask = (t: TaskRecord) => {
@@ -457,7 +672,7 @@ export default function App() {
   const handleUploadDocument = (doc: LegalDocumentRecord) => {
     setDocuments((prev) => [doc, ...prev]);
     logAudit('UPLOAD_DOCUMENT', 'Documentation', `Uploaded document: ${doc.title} (${doc.category})`);
-    showToast(`Document "${doc.title}" saved to chambers vault.`);
+    showToast(`Document "${doc.title}" saved.`);
   };
 
   const handleDeleteDocument = (id: string) => {
@@ -467,9 +682,14 @@ export default function App() {
   };
 
   const handleAddProperty = (p: PropertyRecord) => {
-    setProperties((prev) => [p, ...prev]);
-    logAudit('CREATE_PROPERTY', 'Property Register', `Registered managed property: ${p.name}`);
-    showToast(`Property "${p.name}" registered.`);
+    const tagged = {
+      ...p,
+      branchId: p.branchId || activeBranch.id,
+      branchName: p.branchName || activeBranch.name,
+    };
+    setProperties((prev) => [tagged, ...prev]);
+    logAudit('CREATE_PROPERTY', 'Property Register', `Registered property: ${tagged.name}`);
+    showToast(`Property "${tagged.name}" registered in ${activeBranch.name}.`);
   };
 
   const handleUpdateProperty = (p: PropertyRecord) => {
@@ -488,9 +708,14 @@ export default function App() {
   };
 
   const handleAddTenant = (t: TenantRecord) => {
-    setTenants((prev) => [t, ...prev]);
-    logAudit('CREATE_TENANT', 'Tenants', `Onboarded tenant: ${t.name} at ${t.propertyName} (${t.unitNumber})`);
-    showToast(`Tenant "${t.name}" added to rent roll.`);
+    const tagged = {
+      ...t,
+      branchId: t.branchId || activeBranch.id,
+      branchName: t.branchName || activeBranch.name,
+    };
+    setTenants((prev) => [tagged, ...prev]);
+    logAudit('CREATE_TENANT', 'Tenants', `Onboarded tenant: ${tagged.name} at ${tagged.propertyName}`);
+    showToast(`Tenant "${tagged.name}" added to rent roll in ${activeBranch.name}.`);
   };
 
   const handleDeleteTenant = (id: string) => {
@@ -506,14 +731,18 @@ export default function App() {
   };
 
   const handleAddInvoice = (inv: InvoiceRecord) => {
-    setInvoices((prev) => [inv, ...prev]);
-    logAudit('CREATE_INVOICE', 'Finance', `Issued Fee Note: ${inv.invoiceNumber} for ₦${inv.totalAmount.toLocaleString()} to ${inv.clientName}`);
-    showToast(`Invoice "${inv.invoiceNumber}" issued.`);
+    const tagged = {
+      ...inv,
+      branchId: inv.branchId || activeBranch.id,
+      branchName: inv.branchName || activeBranch.name,
+    };
+    setInvoices((prev) => [tagged, ...prev]);
+    logAudit('CREATE_INVOICE', 'Finance', `Issued Fee Note: ${tagged.invoiceNumber} for ₦${tagged.totalAmount.toLocaleString()}`);
+    showToast(`Invoice "${tagged.invoiceNumber}" issued.`);
   };
 
   const handleRecordPayment = (payment: PaymentRecord) => {
     setPayments((prev) => [payment, ...prev]);
-    // update invoice balance
     setInvoices((prev) =>
       prev.map((inv) => {
         if (inv.id === payment.invoiceId) {
@@ -540,12 +769,11 @@ export default function App() {
   };
 
   const handleCompleteIntake = (newClient: ClientRecord, newMatter?: MatterRecord) => {
-    setClients((prev) => [newClient, ...prev]);
+    handleAddClient(newClient);
     if (newMatter) {
-      setMatters((prev) => [newMatter, ...prev]);
+      handleAddMatter(newMatter);
     }
     logAudit('CLIENT_INTAKE', 'Client Intake', `Completed intake & conflict check for ${newClient.name}`);
-    showToast(`Client intake completed for "${newClient.name}".`);
     setCurrentTab('clients');
   };
 
@@ -584,6 +812,8 @@ export default function App() {
       dateOnboarded: new Date().toISOString().split('T')[0],
       assignedLawyer: 'Barr. B. B. Bale, SAN',
       status: 'Prospect',
+      branchId: activeBranch.id,
+      branchName: activeBranch.name,
       notes: `Inquiry Area: ${data.matterType}. Brief: ${data.notes}`,
     };
     setClients((prev) => [newProspect, ...prev]);
@@ -601,12 +831,21 @@ export default function App() {
         </div>
       )}
 
+      {/* Staff Login Modal (Triggered by disguised button) */}
+      <StaffLoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        branches={branches}
+        users={users}
+        onLoginSuccess={handleLoginSuccess}
+      />
+
       {/* RENDER PUBLIC WEBSITE OR INTERNAL MANAGEMENT APP */}
       {currentTab === 'public-site' ? (
         <PublicFirmView
           firmProfile={firmProfile}
           lawyers={users.filter((u) => u.role.includes('Partner') || u.role.includes('Counsel'))}
-          onOpenPortal={() => setCurrentTab('dashboard')}
+          onOpenPortal={() => setShowLoginModal(true)}
           onRequestConsultation={handlePublicConsultation}
         />
       ) : (
@@ -614,8 +853,12 @@ export default function App() {
           {/* Top Navbar */}
           <LegalNavbar
             onToggleMobileSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+            currentUser={currentUser}
             currentUserRole={currentUserRole}
             onChangeUserRole={setCurrentUserRole}
+            branches={branches}
+            activeBranchId={activeBranchId}
+            onSelectBranch={setActiveBranchId}
             onOpenQuickAction={handleQuickAction}
             onSearchSelect={(type, id) => {
               if (type === 'matter') setCurrentTab('matters');
@@ -626,7 +869,7 @@ export default function App() {
             notifications={notifications}
             onMarkNotificationAsRead={handleMarkNotification}
             onOpenPublicSite={() => setCurrentTab('public-site')}
-            onLogout={() => setCurrentTab('public-site')}
+            onLogout={handleLogout}
             searchQuery={globalSearchQuery}
             onSearchChange={setGlobalSearchQuery}
           />
@@ -650,16 +893,16 @@ export default function App() {
             <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
               {currentTab === 'dashboard' && (
                 <DashboardView
-                  clients={clients}
-                  matters={matters}
-                  cases={cases}
-                  courtDiary={courtDiary}
-                  deadlines={deadlines}
-                  properties={properties}
-                  tenants={tenants}
-                  invoices={invoices}
-                  payments={payments}
-                  auditLogs={auditLogs}
+                  clients={branchFilteredClients}
+                  matters={branchFilteredMatters}
+                  cases={branchFilteredCases}
+                  courtDiary={branchFilteredCourtDiary}
+                  deadlines={branchFilteredDeadlines}
+                  properties={branchFilteredProperties}
+                  tenants={branchFilteredTenants}
+                  invoices={branchFilteredInvoices}
+                  payments={branchFilteredPayments}
+                  auditLogs={branchFilteredAuditLogs}
                   onNavigateTab={setCurrentTab}
                   onOpenQuickAction={handleQuickAction}
                 />
@@ -667,11 +910,11 @@ export default function App() {
 
               {currentTab === 'clients' && (
                 <ClientsView
-                  clients={clients}
-                  matters={matters}
-                  cases={cases}
-                  invoices={invoices}
-                  properties={properties}
+                  clients={branchFilteredClients}
+                  matters={branchFilteredMatters}
+                  cases={branchFilteredCases}
+                  invoices={branchFilteredInvoices}
+                  properties={branchFilteredProperties}
                   onAddClient={handleAddClient}
                   onUpdateClient={handleUpdateClient}
                   onDeleteClient={handleDeleteClient}
@@ -681,20 +924,20 @@ export default function App() {
 
               {currentTab === 'client-intake' && (
                 <ClientIntakeView
-                  clients={clients}
-                  matters={matters}
-                  cases={cases}
+                  clients={branchFilteredClients}
+                  matters={branchFilteredMatters}
+                  cases={branchFilteredCases}
                   onCompleteIntake={handleCompleteIntake}
                 />
               )}
 
               {currentTab === 'matters' && (
                 <MattersView
-                  matters={matters}
-                  clients={clients}
-                  cases={cases}
+                  matters={branchFilteredMatters}
+                  clients={branchFilteredClients}
+                  cases={branchFilteredCases}
                   documents={documents}
-                  tasks={tasks}
+                  tasks={branchFilteredTasks}
                   onAddMatter={handleAddMatter}
                   onUpdateMatter={handleUpdateMatter}
                   onDeleteMatter={handleDeleteMatter}
@@ -704,8 +947,8 @@ export default function App() {
 
               {currentTab === 'litigation' && (
                 <LitigationCasesView
-                  cases={cases}
-                  matters={matters}
+                  cases={branchFilteredCases}
+                  matters={branchFilteredMatters}
                   onAddCase={handleAddCase}
                   onUpdateCase={handleUpdateCase}
                   onDeleteCase={handleDeleteCase}
@@ -714,8 +957,8 @@ export default function App() {
 
               {currentTab === 'court-diary' && (
                 <CourtDiaryView
-                  courtDiary={courtDiary}
-                  cases={cases}
+                  courtDiary={branchFilteredCourtDiary}
+                  cases={branchFilteredCases}
                   onAddCourtDate={handleAddCourtDate}
                   onUpdateCourtDate={handleUpdateCourtDate}
                 />
@@ -723,8 +966,8 @@ export default function App() {
 
               {currentTab === 'deadlines' && (
                 <DeadlinesTasksView
-                  deadlines={deadlines}
-                  tasks={tasks}
+                  deadlines={branchFilteredDeadlines}
+                  tasks={branchFilteredTasks}
                   onAddDeadline={handleAddDeadline}
                   onUpdateDeadline={handleUpdateDeadline}
                   onAddTask={handleAddTask}
@@ -734,8 +977,8 @@ export default function App() {
 
               {currentTab === 'tasks' && (
                 <DeadlinesTasksView
-                  deadlines={deadlines}
-                  tasks={tasks}
+                  deadlines={branchFilteredDeadlines}
+                  tasks={branchFilteredTasks}
                   onAddDeadline={handleAddDeadline}
                   onUpdateDeadline={handleUpdateDeadline}
                   onAddTask={handleAddTask}
@@ -765,7 +1008,7 @@ export default function App() {
 
               {currentTab === 'properties' && (
                 <PropertyRegisterView
-                  properties={properties}
+                  properties={branchFilteredProperties}
                   units={units}
                   landlords={landlords}
                   onAddProperty={handleAddProperty}
@@ -777,8 +1020,8 @@ export default function App() {
               {currentTab === 'landlords-tenants' && (
                 <LandlordsTenantsView
                   landlords={landlords}
-                  tenants={tenants}
-                  properties={properties}
+                  tenants={branchFilteredTenants}
+                  properties={branchFilteredProperties}
                   onAddLandlord={handleAddLandlord}
                   onAddTenant={handleAddTenant}
                   onDeleteTenant={handleDeleteTenant}
@@ -788,8 +1031,8 @@ export default function App() {
               {(currentTab === 'rent-management' || currentTab === 'notices-recovery' || currentTab === 'property-transactions') && (
                 <TenancyNoticesTransactionsView
                   initialSubTab={currentTab as any}
-                  properties={properties}
-                  tenants={tenants}
+                  properties={branchFilteredProperties}
+                  tenants={branchFilteredTenants}
                   firmProfile={firmProfile}
                   onUpdateTenantPayment={handleUpdateTenantPayment}
                 />
@@ -797,11 +1040,11 @@ export default function App() {
 
               {currentTab === 'billing' && (
                 <BillingFinanceView
-                  invoices={invoices}
-                  payments={payments}
-                  expenses={expenses}
-                  clients={clients}
-                  matters={matters}
+                  invoices={branchFilteredInvoices}
+                  payments={branchFilteredPayments}
+                  expenses={branchFilteredExpenses}
+                  clients={branchFilteredClients}
+                  matters={branchFilteredMatters}
                   firmProfile={firmProfile}
                   onAddInvoice={handleAddInvoice}
                   onRecordPayment={handleRecordPayment}
@@ -812,17 +1055,23 @@ export default function App() {
               {(currentTab === 'reports' || currentTab === 'audit-trail' || currentTab === 'administration') && (
                 <AuditAdministrationReportsView
                   initialSubTab={currentTab as any}
-                  auditLogs={auditLogs}
+                  auditLogs={branchFilteredAuditLogs}
                   firmProfile={firmProfile}
+                  branches={branches}
+                  activeBranch={activeBranch}
                   users={users}
+                  currentUser={currentUser}
                   currentUserRole={currentUserRole}
                   onChangeUserRole={setCurrentUserRole}
                   onUpdateFirmProfile={setFirmProfile}
-                  cases={cases}
-                  matters={matters}
-                  invoices={invoices}
-                  properties={properties}
-                  tenants={tenants}
+                  onCreateBranch={handleCreateBranch}
+                  onCreateStaffUser={handleCreateStaffUser}
+                  onChangePassword={handleChangePassword}
+                  cases={branchFilteredCases}
+                  matters={branchFilteredMatters}
+                  invoices={branchFilteredInvoices}
+                  properties={branchFilteredProperties}
+                  tenants={branchFilteredTenants}
                 />
               )}
 
