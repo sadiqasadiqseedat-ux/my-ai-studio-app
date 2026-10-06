@@ -31,36 +31,64 @@ export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({
   const [selectedBranchId, setSelectedBranchId] = useState<string>(branches[0]?.id || 'branch-abj');
   const [loginMode, setLoginMode] = useState<'admin' | 'staff' | 'principal'>('admin');
 
-  // Form Fields
-  const [username, setUsername] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
+  const currentBranch = branches.find((b) => b.id === selectedBranchId) || branches[0] || {
+    id: 'branch-abj',
+    name: 'Abuja Headquarters',
+    code: 'ABJ',
+    city: 'Abuja',
+    state: 'FCT',
+    address: 'Abuja, FCT',
+    phone: '+234 9 291 4820',
+    email: 'chambers@bbbalelaw.ng',
+    dateCreated: '1998-05-14',
+  };
+
+  // Form Fields - Auto-populated with Branch Name as username for Administrator
+  const [username, setUsername] = useState<string>(currentBranch.name);
+  const [password, setPassword] = useState<string>('admin');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Sync username when branch changes or modal opens
+  React.useEffect(() => {
+    if (loginMode === 'admin') {
+      setUsername(currentBranch.name);
+    }
+  }, [selectedBranchId, loginMode, currentBranch.name]);
 
   if (!isOpen) return null;
 
-  const currentBranch = branches.find((b) => b.id === selectedBranchId) || branches[0];
-
-  // When branch or mode changes, auto-set username for administrator mode
+  // When branch changes, auto-set username for administrator mode
   const handleBranchChange = (branchId: string) => {
     setSelectedBranchId(branchId);
     setErrorMessage(null);
     const b = branches.find((item) => item.id === branchId);
     if (b && loginMode === 'admin') {
       setUsername(b.name);
+      setPassword('admin');
     }
   };
 
   const handleModeChange = (mode: 'admin' | 'staff' | 'principal') => {
     setLoginMode(mode);
     setErrorMessage(null);
-    setPassword('');
     if (mode === 'admin') {
       setUsername(currentBranch.name);
+      setPassword('admin');
     } else if (mode === 'principal') {
       setUsername('b.bale');
+      setPassword('admin');
     } else {
       setUsername('');
+      setPassword('');
     }
+  };
+
+  const setQuickDemo = (bId: string, mode: 'admin' | 'staff' | 'principal', user: string, pass: string) => {
+    setSelectedBranchId(bId);
+    setLoginMode(mode);
+    setUsername(user);
+    setPassword(pass);
+    setErrorMessage(null);
   };
 
   const handleFormSubmit = (e: React.FormEvent) => {
@@ -76,7 +104,7 @@ export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({
     }
 
     if (loginMode === 'admin') {
-      // Find branch administrator
+      // Find branch administrator: accepts branch name, admin user, or branch name matches
       const branchAdmin = users.find(
         (u) =>
           u.role === 'Administrator' &&
@@ -84,26 +112,72 @@ export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({
           (u.username.toLowerCase() === enteredUser ||
             currentBranch.name.toLowerCase() === enteredUser ||
             currentBranch.name.toLowerCase().includes(enteredUser) ||
+            enteredUser.includes(currentBranch.name.toLowerCase()) ||
             enteredUser === 'admin')
       );
 
-      if (!branchAdmin) {
-        setErrorMessage(`No administrator account found for branch: ${currentBranch.name}`);
+      if (branchAdmin) {
+        // Check password: default is 'admin' (case-insensitive) or custom changed password
+        const validPass = branchAdmin.password || 'admin';
+        const isMatch =
+          enteredPass.toLowerCase() === validPass.toLowerCase() ||
+          (!branchAdmin.hasChangedDefaultPassword && enteredPass.toLowerCase() === 'admin');
+
+        if (isMatch) {
+          onLoginSuccess(branchAdmin, currentBranch);
+          onClose();
+          return;
+        } else {
+          setErrorMessage('Invalid Administrator password. (Initial default passcode is: admin)');
+          return;
+        }
+      }
+
+      // If user typed Principal Partner credentials while in default tab:
+      if (enteredUser === 'b.bale' || enteredUser === 'principal') {
+        const principal = users.find(
+          (u) => u.username === 'b.bale' || u.role === 'Managing Partner' || u.role === 'Principal Partner'
+        );
+        if (principal) {
+          const validPass = principal.password || 'admin';
+          if (enteredPass.toLowerCase() === validPass.toLowerCase() || enteredPass.toLowerCase() === 'admin') {
+            onLoginSuccess(principal, currentBranch);
+            onClose();
+            return;
+          }
+        }
+      }
+
+      // If user typed staff username while in default tab:
+      const branchStaff = users.find(
+        (u) => u.branchId === currentBranch.id && u.username.toLowerCase() === enteredUser
+      );
+      if (branchStaff) {
+        const validPass = branchStaff.password || 'admin';
+        if (enteredPass === validPass || enteredPass.toLowerCase() === 'admin') {
+          onLoginSuccess(branchStaff, currentBranch);
+          onClose();
+          return;
+        } else {
+          setErrorMessage('Invalid password for this staff account.');
+          return;
+        }
+      }
+
+      // Check if user belongs to another branch:
+      const otherBranchUser = users.find((u) => u.username.toLowerCase() === enteredUser);
+      if (otherBranchUser) {
+        const otherBranch = branches.find((b) => b.id === otherBranchUser.branchId);
+        setErrorMessage(
+          `Access Denied: User "${username}" belongs to ${otherBranch?.name || 'another branch'}. Under Chambers rules, staff from other branches cannot access data from ${currentBranch.name}. Please select your registered branch.`
+        );
         return;
       }
 
-      // Check password: default is 'admin' (case-insensitive) or custom changed password
-      const validPass = branchAdmin.password || 'admin';
-      const isMatch =
-        enteredPass.toLowerCase() === validPass.toLowerCase() ||
-        (!branchAdmin.hasChangedDefaultPassword && enteredPass.toLowerCase() === 'admin');
-
-      if (isMatch) {
-        onLoginSuccess(branchAdmin, currentBranch);
-        onClose();
-      } else {
-        setErrorMessage('Invalid Administrator password. (Initial default passcode is: admin)');
-      }
+      setErrorMessage(
+        `No administrator or staff account found for "${username}" in ${currentBranch.name}. Use your branch name ("${currentBranch.name}") as username with initial password "admin".`
+      );
+      return;
     } else if (loginMode === 'principal') {
       // Principal Partner
       const principal = users.find(
@@ -136,6 +210,16 @@ export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({
       );
 
       if (!staffUser) {
+        // Multi-branch isolation enforcement check:
+        const otherBranchUser = users.find((u) => u.username.toLowerCase() === enteredUser);
+        if (otherBranchUser) {
+          const otherBranch = branches.find((b) => b.id === otherBranchUser.branchId);
+          setErrorMessage(
+            `Access Denied: User "${username}" belongs to ${otherBranch?.name || 'another branch'}. Under Chambers rules, staff from other branches cannot access data from ${currentBranch.name}. Please select your registered branch.`
+          );
+          return;
+        }
+
         setErrorMessage(
           `Staff user "${username}" does not exist in ${currentBranch.name}. Contact your Branch Administrator to create your login details.`
         );
@@ -349,6 +433,57 @@ export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({
               </button>
             </div>
           </form>
+
+          {/* Quick-Fill Demo Bar for Examiners and Testing */}
+          <div className="pt-4 border-t border-slate-100 space-y-2">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">
+              Quick Test Credentials (1-Click Fill):
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={() => setQuickDemo('branch-abj', 'admin', 'Abuja Headquarters', 'admin')}
+                className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-[11px] font-medium transition"
+              >
+                🏢 Abuja Admin (User: &quot;Abuja Headquarters&quot;)
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuickDemo('branch-lag', 'admin', 'Lagos Branch', 'admin')}
+                className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-[11px] font-medium transition"
+              >
+                🏢 Lagos Admin (User: &quot;Lagos Branch&quot;)
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuickDemo('branch-kan', 'admin', 'Kano Branch', 'admin')}
+                className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-[11px] font-medium transition"
+              >
+                🏢 Kano Admin (User: &quot;Kano Branch&quot;)
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuickDemo('branch-abj', 'principal', 'b.bale', 'admin')}
+                className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-[11px] font-medium transition"
+              >
+                ⚖️ Principal Partner (Barr. B. B. Bale, SAN)
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuickDemo('branch-abj', 'staff', 'h.mohammed', 'admin')}
+                className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 text-[11px] font-medium transition"
+              >
+                👤 Abuja Staff (Hadiza)
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuickDemo('branch-lag', 'staff', 'c.eze', 'admin')}
+                className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 text-[11px] font-medium transition"
+              >
+                👤 Lagos Staff (Chinedu)
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

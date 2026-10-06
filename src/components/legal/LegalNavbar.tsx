@@ -17,6 +17,7 @@ import {
   Lock,
   Globe,
   ChevronDown,
+  KeyRound,
 } from 'lucide-react';
 import { UserRole, NotificationItem, BranchRecord, UserProfile } from '../../types/legal';
 
@@ -34,6 +35,7 @@ interface LegalNavbarProps {
   onMarkNotificationAsRead: (id: string) => void;
   onOpenPublicSite: () => void;
   onLogout: () => void;
+  onOpenChangePassword?: () => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
 }
@@ -51,6 +53,7 @@ export const LegalNavbar: React.FC<LegalNavbarProps> = ({
   onMarkNotificationAsRead,
   onOpenPublicSite,
   onLogout,
+  onOpenChangePassword,
   searchQuery,
   onSearchChange,
 }) => {
@@ -365,6 +368,17 @@ export const LegalNavbar: React.FC<LegalNavbarProps> = ({
               </div>
             )}
           </div>
+
+          {/* Change Password Button */}
+          {onOpenChangePassword && (
+            <button
+              onClick={onOpenChangePassword}
+              className="p-1.5 sm:p-2 rounded-lg text-slate-300 hover:text-amber-300 hover:bg-white/5 transition-colors"
+              title="Change Password"
+            >
+              <KeyRound className="w-4 h-4" />
+            </button>
+          )}
 
           {/* Secure Logout / Lock Session */}
           <button

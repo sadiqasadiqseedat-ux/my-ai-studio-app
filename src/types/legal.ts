@@ -1,13 +1,32 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/* ========================================================
+   CONSOLIDATED USER ROLES (EXACTLY 5 ROLES)
+======================================================== */
 export type UserRole =
-  | 'Principal Partner'
+  | 'PRINCIPAL PARTNER'
   | 'Managing Partner'
+  | 'Principal Partner'
+  | 'HEAD OF CHAMBER'
   | 'Partner'
-  | 'Associate / Counsel'
+  | 'ADMINISTRATOR / SECRETARY'
+  | 'Administrator'
   | 'Litigation Secretary'
-  | 'Clerk'
+  | 'ACCOUNT OFFICER'
   | 'Accounts Officer'
+  | 'COUNSEL / STAFF'
+  | 'Associate / Counsel'
   | 'Property/Facility Officer'
-  | 'Administrator';
+  | 'Clerk';
+
+export type CounselAvailabilityStatus =
+  | 'In Court'
+  | 'In Office'
+  | 'Available'
+  | 'Out of Office';
 
 export interface BranchRecord {
   id: string;
@@ -20,6 +39,8 @@ export interface BranchRecord {
   email: string;
   isHeadquarters?: boolean;
   dateCreated: string;
+  headOfChamberName?: string;
+  status?: 'Active' | 'Archived';
 }
 
 export interface UserProfile {
@@ -35,6 +56,11 @@ export interface UserProfile {
   barNumber?: string;
   phone: string;
   avatar?: string;
+  availabilityStatus?: CounselAvailabilityStatus;
+  currentCourtLocation?: string;
+  isPubliclyListed?: boolean;
+  bio?: string;
+  practiceAreas?: string[];
   isInitialAdmin?: boolean;
   hasChangedDefaultPassword?: boolean;
 }
@@ -84,6 +110,8 @@ export interface MatterRecord {
   title: string;
   clientId: string;
   clientName: string;
+  clientPhone?: string;
+  clientEmail?: string;
   matterType: string;
   assignedPartner: string;
   assignedCounsel: string;
@@ -99,6 +127,13 @@ export interface MatterRecord {
   isSharia?: boolean;
   branchId?: string;
   branchName?: string;
+  clientVisibleStatus?: string;
+  clientProgressHistory?: Array<{
+    date: string;
+    stage: string;
+    description: string;
+    isPublic: boolean;
+  }>;
 }
 
 export type CaseCategory =
@@ -120,12 +155,24 @@ export type CaseCategory =
   | 'Sharia / Islamic Law'
   | 'Other';
 
+export type CaseAssignmentStatus =
+  | 'Unassigned'
+  | 'Assignment Pending'
+  | 'Assigned'
+  | 'Accepted'
+  | 'Rejected'
+  | 'Reassignment Requested'
+  | 'Reassigned'
+  | 'Completed'
+  | 'Closed';
+
 export interface CaseRecord {
   id: string;
   suitNumber: string; // e.g. FHC/ABJ/CS/104/2026
   matterRef: string;
   clientId: string;
   clientName: string;
+  clientPhone?: string;
   plaintiffClaimant: string;
   defendantRespondent: string;
   plaintiff?: string;
@@ -158,6 +205,15 @@ export interface CaseRecord {
   summary: string;
   branchId?: string;
   branchName?: string;
+  // Assignment System
+  assignmentStatus?: CaseAssignmentStatus;
+  assignedCounselId?: string;
+  assignedCounselName?: string;
+  assignedBy?: string;
+  assignmentDate?: string;
+  rejectionReason?: string;
+  reassignmentNotes?: string;
+  clientVisibleStatus?: string;
 }
 
 export interface CourtDiaryItem {
@@ -237,6 +293,9 @@ export interface LegalDocumentRecord {
   fileSize: string;
   version: string;
   notes?: string;
+  branchId?: string;
+  branchName?: string;
+  isClientVisible?: boolean;
 }
 
 export interface LegalTemplate {
@@ -253,46 +312,72 @@ export interface CorrespondenceRecord {
   refNumber: string;
   date: string;
   direction: 'Incoming' | 'Outgoing';
-  sender: string;
-  recipient: string;
+  partyName?: string;
+  sender?: string;
+  recipient?: string;
   subject: string;
-  matterRef: string;
-  method: 'Bailiff Service' | 'Hand Delivery' | 'Registered Post' | 'Courier' | 'Official Email';
-  assignedLawyer: string;
-  status: 'Received' | 'Delivered' | 'Pending Service' | 'Acknowledged';
+  method?: string;
+  modeOfDelivery?: string;
+  receivedOrDispatchedBy?: string;
+  matterRef?: string;
+  status: 'Received' | 'Dispatched' | 'Action Pending' | 'Filed' | 'Delivered' | 'Acknowledged' | string;
+  branchId?: string;
+  branchName?: string;
 }
 
 export interface LegalResearchRecord {
   id: string;
-  topic: string;
-  legalIssue: string;
-  statute: string;
-  caseAuthority: string;
-  citation: string;
-  court: string;
-  year: string;
-  legalPrinciple: string;
-  notes: string;
+  citation: string; // e.g. (2021) 12 NWLR (Pt. 1791) 402
+  court: 'Supreme Court' | 'Court of Appeal' | 'Federal High Court' | 'High Court FCT / State' | 'National Industrial Court' | 'Sharia Court of Appeal' | string;
+  parties?: string;
+  year?: number | string;
+  subjectMatter?: string;
+  topic?: string;
+  caseAuthority?: string;
+  legalPrinciple?: string;
+  principlesSummary?: string;
+  statute?: string;
+  statutesInterpreted?: string[];
   relatedMatter?: string;
+  addedBy?: string;
+  branchId?: string;
+  branchName?: string;
 }
 
 export interface AppointmentRecord {
   id: string;
   clientName: string;
-  matterRef: string;
   lawyerName: string;
   date: string;
   time: string;
   location: string;
   purpose: string;
-  type: 'Client Consultation' | 'Court' | 'Meeting' | 'Internal Meeting' | 'Mediation' | 'Negotiation';
+  type: 'Client Consultation' | 'Court' | 'Meeting' | 'Internal Meeting' | 'Mediation' | 'Negotiation' | 'Pre-Trial Preparation' | 'Client Strategy Session' | string;
   status: 'Scheduled' | 'Completed' | 'Rescheduled' | 'Cancelled';
+  matterRef?: string;
+  branchId?: string;
+  branchName?: string;
+}
+
+export interface PropertyDisputeRecord {
+  id: string;
+  propertyId: string;
+  propertyName: string;
+  disputeType: string;
+  partiesInvolved: string;
+  courtSuitNumber?: string;
+  status: 'Pre-Action' | 'Litigation Ongoing' | 'Mediation' | 'Resolved';
+  dateNoticed: string;
+  assignedCounsel: string;
+  description: string;
+  nextStep: string;
+  branchId?: string;
+  branchName?: string;
 }
 
 /* ========================================================
    PROPERTY, LANDLORD & TENANT MANAGEMENT TYPES
 ======================================================== */
-
 export type PropertyType =
   | 'Commercial Building'
   | 'Residential Plaza'
@@ -305,7 +390,7 @@ export type PropertyType =
 
 export interface PropertyRecord {
   id: string;
-  propertyCode: string; // e.g. PROP/ABJ/001
+  propertyCode: string; // e.g. PROP/ABJ/001 or BBC-PROP-2026-00045
   name: string;
   propertyType: PropertyType;
   address: string;
@@ -314,6 +399,8 @@ export interface PropertyRecord {
   district: string;
   landlordId: string;
   landlordName: string;
+  landlordPhone?: string;
+  landlordEmail?: string;
   totalUnits: number;
   occupiedUnits: number;
   status: 'Active' | 'Occupied' | 'Vacant' | 'Under Dispute' | 'Under Maintenance' | 'Sold' | 'Leased';
@@ -324,6 +411,12 @@ export interface PropertyRecord {
   notes?: string;
   branchId?: string;
   branchName?: string;
+  // Activity Timeline for Landlord Tracking
+  activityTimeline?: Array<{
+    date: string;
+    title: string;
+    description: string;
+  }>;
 }
 
 export interface LandlordRecord {
@@ -338,6 +431,8 @@ export interface LandlordRecord {
   totalProperties: number;
   bankDetails?: string;
   notes?: string;
+  branchId?: string;
+  branchName?: string;
 }
 
 export interface UnitRecord {
@@ -357,6 +452,7 @@ export interface UnitRecord {
 
 export interface TenantRecord {
   id: string;
+  tenantCode?: string; // e.g. BBC-TEN-2026-0012
   name: string;
   phone: string;
   email: string;
@@ -399,10 +495,12 @@ export interface TenancyAgreementRecord {
   frequency: string;
   securityDeposit: number;
   serviceCharge: number;
-  noticeRequirement: string; // e.g. 6 Months Notice for Yearly Tenancy
+  noticeRequirement: string;
   specialConditions: string;
   dateSigned: string;
   status: 'Active' | 'Under Renewal' | 'Terminated' | 'Expired';
+  branchId?: string;
+  branchName?: string;
 }
 
 export interface RentRecord {
@@ -421,6 +519,8 @@ export interface RentRecord {
   reference?: string;
   receiptNumber?: string;
   status: 'Paid' | 'Partially Paid' | 'Outstanding' | 'Overdue';
+  branchId?: string;
+  branchName?: string;
 }
 
 export interface NoticeRecord {
@@ -461,27 +561,8 @@ export interface NoticeRecord {
     | 'Issued';
   relatedMatterRef?: string;
   documentTitle?: string;
-}
-
-export interface PropertyDisputeRecord {
-  id: string;
-  propertyName: string;
-  landlordName: string;
-  tenantName: string;
-  matterRef: string;
-  natureOfDispute:
-    | 'Rent Arrears Recovery'
-    | 'Recovery of Possession'
-    | 'Unlawful Holding Over'
-    | 'Damage to Tenement'
-    | 'Service Charge Default'
-    | 'Illegal Subletting'
-    | 'Nuisance / Breach of Peace'
-    | 'Title Dispute';
-  dateStarted: string;
-  currentStatus: 'Preliminary Notice' | 'Settlement Talks' | 'Court Proceedings' | 'Judgment Obtained' | 'Warrant of Possession Executed';
-  assignedLawyer: string;
-  courtCaseSuitNo?: string;
+  branchId?: string;
+  branchName?: string;
 }
 
 export interface PropertyTransactionRecord {
@@ -521,6 +602,8 @@ export interface PropertyTransactionRecord {
   notes?: string;
   legalFees?: number;
   legalFee?: number;
+  branchId?: string;
+  branchName?: string;
 }
 
 export interface DueDiligenceRecord {
@@ -550,16 +633,28 @@ export interface MaintenanceRecord {
 }
 
 /* ========================================================
-   BILLING, PAYMENTS, EXPENSES, AUDIT TRAIL
+   BILLING, PAYMENTS, VERIFICATION & AUDIT TRAIL
 ======================================================== */
+export type PaymentVerificationStatus =
+  | 'Invoice Generated'
+  | 'Awaiting Payment'
+  | 'Payment Submitted'
+  | 'Payment Verification Pending'
+  | 'Payment Verified'
+  | 'Payment Rejected'
+  | 'Payment Cancelled'
+  | 'Refunded';
 
 export interface InvoiceRecord {
   id: string;
-  invoiceNumber: string; // e.g. INV/BBBC/2026/018
-  clientId: string;
+  invoiceNumber: string; // e.g. INV/BBBC/2026/018 or BBC-INV-2026-000125
+  clientId?: string;
   clientName: string;
+  clientPhone?: string;
+  clientEmail?: string;
   matterRef?: string;
   matterReference?: string;
+  consultationCode?: string;
   dateIssued?: string;
   issueDate?: string;
   dueDate: string;
@@ -567,14 +662,19 @@ export interface InvoiceRecord {
   professionalFees?: number;
   courtFilingExpenses?: number;
   disbursements?: number;
-  taxPercentage?: number; // e.g. 7.5% VAT (configurable)
+  taxPercentage?: number;
   subtotal?: number;
   vat?: number;
   items?: Array<{ id?: string; description: string; amount: number; quantity?: number; unitPrice?: number }>;
   totalAmount: number;
   amountPaid: number;
   balance: number;
+  paymentReference?: string;
+  paymentStatus?: PaymentVerificationStatus;
   status: 'Draft' | 'Sent' | 'Partially Paid' | 'Paid' | 'Overdue' | 'Pending';
+  verificationNotes?: string;
+  verifiedBy?: string;
+  verifiedAt?: string;
   branchId?: string;
   branchName?: string;
 }
@@ -592,7 +692,9 @@ export interface PaymentRecord {
   reference: string;
   receivedBy?: string;
   status?: string;
+  verificationStatus?: PaymentVerificationStatus;
   notes?: string;
+  proofDocumentUrl?: string;
   branchId?: string;
   branchName?: string;
 }
@@ -648,9 +750,91 @@ export interface NotificationItem {
   timestamp: string;
   title: string;
   message: string;
-  category: 'Court Date' | 'Deadline' | 'Rent' | 'Intake' | 'Billing' | 'System';
+  category: 'Court Date' | 'Deadline' | 'Rent' | 'Intake' | 'Billing' | 'Assignment' | 'Approval' | 'System';
   isRead: boolean;
   linkTab?: string;
+  targetRole?: UserRole | 'ALL';
+  targetUserId?: string;
+  branchId?: string;
+}
+
+/* ========================================================
+   PUBLIC PORTAL, CONSULTATION & NOTICE BOARD TYPES
+======================================================== */
+export interface ConsultationApplication {
+  id: string;
+  code: string; // e.g. BBC-CONS-2026-000125
+  invoiceNumber: string; // e.g. BBC-INV-2026-000125
+  paymentCode: string; // e.g. BBC-PAY-2026-00125
+  applicantName: string;
+  phone: string;
+  email: string;
+  consultationType: string;
+  consultationMethod: 'In-Chambers (Physical)' | 'Virtual (Zoom / Teams)' | 'Telephone';
+  preferredDate: string;
+  preferredTime: string;
+  enquiryDetails: string;
+  uploadedDocuments?: string[];
+  feeAmount: number;
+  paymentStatus: PaymentVerificationStatus;
+  paymentMethod?: string;
+  paymentReferenceSubmitted?: string;
+  paymentDateSubmitted?: string;
+  paymentProofUrl?: string;
+  verificationNotes?: string;
+  verifiedBy?: string;
+  verifiedAt?: string;
+  status:
+    | 'Application Received'
+    | 'Invoice Generated'
+    | 'Payment Submitted'
+    | 'Payment Verification Pending'
+    | 'Payment Verified'
+    | 'Consultation Confirmed'
+    | 'Awaiting Consultation'
+    | 'Matter Opening'
+    | 'Concluded';
+  linkedMatterRef?: string;
+  createdAt: string;
+  branchId: string;
+  branchName: string;
+}
+
+export interface ApprovalRequest {
+  id: string;
+  requestingUserId: string;
+  requestingUserName: string;
+  requestingUserRole: UserRole;
+  actionTitle: string;
+  recordType: 'Case Assignment' | 'Fee Waiver / Discount' | 'Public Announcement' | 'Branch Operation' | 'Court Filing' | 'Settlement';
+  recordId: string;
+  recordReference: string;
+  description: string;
+  requestedAt: string;
+  status: 'Awaiting Principal Partner Approval' | 'Approved' | 'Rejected';
+  reviewedBy?: string;
+  reviewedAt?: string;
+  reviewComment?: string;
+  branchId: string;
+  branchName: string;
+}
+
+export interface PublicNoticeItem {
+  id: string;
+  title: string;
+  content: string;
+  category: 'General Notice' | 'Court Recess' | 'Chambers Holiday' | 'Statutory Update' | 'Practice Direction';
+  datePosted: string;
+  expiresAt?: string;
+  isPublished: boolean;
+  postedBy: string;
+}
+
+export interface ChambersOfficeHours {
+  weekdays: string;
+  saturday: string;
+  sunday: string;
+  specialNotes?: string;
 }
 
 export interface FirmProfile {
@@ -668,4 +852,7 @@ export interface FirmProfile {
   accountName: string;
   accountNumber: string;
   tinNumber: string;
+  consultationFeeGeneral?: number;
+  consultationFeeSeniorCounsel?: number;
+  consultationFeeSAN?: number;
 }

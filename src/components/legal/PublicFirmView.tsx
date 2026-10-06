@@ -47,6 +47,21 @@ export const PublicFirmView: React.FC<PublicFirmViewProps> = ({
   const [notes, setNotes] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
+  // Keyboard shortcut (Ctrl+Shift+L or Alt+L) to open disguised portal
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        onOpenPortal();
+      } else if (e.altKey && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        onOpenPortal();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onOpenPortal]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onRequestConsultation({ name, phone, email, matterType, notes });
@@ -113,10 +128,10 @@ export const PublicFirmView: React.FC<PublicFirmViewProps> = ({
             <button
               type="button"
               onClick={onOpenPortal}
-              title="Statutory Chambers Roll"
-              className="text-[10px] text-slate-400 hover:text-amber-300 font-mono transition-colors cursor-pointer px-1 py-0.5 rounded hover:bg-white/5"
+              title="Statutory Chambers Roll [LP/FCT/98] — Internal Gateway"
+              className="text-[11px] text-amber-300/90 hover:text-amber-200 font-mono transition-colors cursor-pointer px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 border border-amber-400/30 flex items-center gap-1"
             >
-              FCT/ROLL/98
+              <span>FCT/ROLL/98</span>
             </button>
           </div>
         </div>
@@ -126,9 +141,14 @@ export const PublicFirmView: React.FC<PublicFirmViewProps> = ({
       <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-lg bg-[#0B1B3D] border-2 border-[#D4AF37] flex items-center justify-center text-[#D4AF37] shadow-md">
+            <button
+              type="button"
+              onClick={onOpenPortal}
+              title="Statutory Chambers Seal & Roll [LP/FCT/98] — Internal Portal"
+              className="w-11 h-11 rounded-lg bg-[#0B1B3D] border-2 border-[#D4AF37] flex items-center justify-center text-[#D4AF37] shadow-md hover:scale-105 transition-transform cursor-pointer"
+            >
               <Scale className="w-6 h-6" />
-            </div>
+            </button>
             <div>
               <span className="font-heading font-extrabold text-lg sm:text-xl tracking-wider text-[#0B1B3D] block">
                 {firmProfile.firmName}
@@ -139,7 +159,18 @@ export const PublicFirmView: React.FC<PublicFirmViewProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {/* Disguised Chambers Roll Gateway Button in Navbar */}
+            <button
+              type="button"
+              onClick={onOpenPortal}
+              title="Statutory Chambers Secretariat Roll [LP/FCT/98]"
+              className="text-slate-500 hover:text-[#0B1B3D] px-2.5 py-1.5 rounded-lg border border-slate-200 hover:border-slate-300 text-xs font-mono flex items-center gap-1.5 transition bg-slate-50/50"
+            >
+              <Scale className="w-3.5 h-3.5 text-[#D4AF37]" />
+              <span className="text-[11px] font-semibold">Roll: LP/FCT/98</span>
+            </button>
+
             <button
               onClick={() => setShowConsultModal(true)}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#0B1B3D] text-white hover:bg-[#13274F] font-semibold text-xs transition shadow-md"
@@ -503,6 +534,17 @@ export const PublicFirmView: React.FC<PublicFirmViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Disguised Internal Chambers Seal: Discreet gateway */}
+      <button
+        type="button"
+        onClick={onOpenPortal}
+        className="fixed bottom-3 left-3 z-30 opacity-70 hover:opacity-100 transition-all text-xs bg-[#0B1B3D] text-amber-200 px-3 py-1.5 rounded-lg border border-amber-400/40 font-mono flex items-center gap-1.5 shadow-lg cursor-pointer hover:bg-[#13274F] hover:scale-105"
+        title="Statutory Chambers Roll [LP/FCT/98] — Internal Portal"
+      >
+        <Scale className="w-3.5 h-3.5 text-[#D4AF37]" />
+        <span>Chambers Roll [LP/FCT/98]</span>
+      </button>
     </div>
   );
 };
